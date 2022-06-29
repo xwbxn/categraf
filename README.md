@@ -1,6 +1,10 @@
 # Categraf
+![Release](https://github.com/flashcatcloud/categraf/workflows/Release/badge.svg)
+[![Powered By Flashcat](https://img.shields.io/badge/Powered%20By-Flashcat-red)](https://flashcat.cloud/)
 
 Categraf is a monitoring agent for nightingale / prometheus / m3db / victoriametrics / thanos / influxdb / tdengine.
+
+[![dockeri.co](https://dockeri.co/image/flashcatcloud/categraf)](https://hub.docker.com/r/flashcatcloud/categraf/)
 
 ## Links
 
@@ -52,11 +56,13 @@ nohup ./categraf &> stdout.log &
 
 ## Deploy categraf as daemonset
 
-edit k8s/categraf.yaml, replace NSERVER_SERVICE_WITH_PORT with service ip:port of nserver in your cluster, replace CATEGRAF_NAMESPACE with namespace value, then run:
+edit k8s/daemonset.yaml, replace NSERVER_SERVICE_WITH_PORT with service ip:port of nserver in your cluster, replace CATEGRAF_NAMESPACE with namespace value, then run:
 
 ```shell
-kubectl apply -n monitoring -f ks8/categraf.yaml
+kubectl apply -n monitoring -f ks8/daemonset.yaml
+kubectl apply -n monitoring -f ks8/sidecar.yaml
 ```
+Notice: k8s/sidecar.yaml is a demo, replace mock with your own image.
 
 
 ## Plugin

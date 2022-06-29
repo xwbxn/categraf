@@ -9,6 +9,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/disk"
 	_ "flashcat.cloud/categraf/inputs/diskio"
 	_ "flashcat.cloud/categraf/inputs/docker"
+	_ "flashcat.cloud/categraf/inputs/elasticsearch"
 	_ "flashcat.cloud/categraf/inputs/exec"
 	_ "flashcat.cloud/categraf/inputs/http_response"
 	_ "flashcat.cloud/categraf/inputs/kernel"
@@ -34,11 +35,13 @@ import (
 	_ "flashcat.cloud/categraf/inputs/system"
 	_ "flashcat.cloud/categraf/inputs/tomcat"
 	_ "flashcat.cloud/categraf/inputs/zookeeper"
+	"flashcat.cloud/categraf/traces"
 )
 
 type Agent struct {
-	InputFilters map[string]struct{}
-	InputReaders map[string]*InputReader
+	InputFilters   map[string]struct{}
+	InputReaders   map[string]*InputReader
+	TraceCollector *traces.Collector
 }
 
 func NewAgent(filters map[string]struct{}) *Agent {
@@ -52,6 +55,7 @@ func (a *Agent) Start() {
 	log.Println("I! agent starting")
 	a.startLogAgent()
 	a.startMetricsAgent()
+	a.startTracesAgent()
 	log.Println("I! agent started")
 }
 
@@ -59,6 +63,7 @@ func (a *Agent) Stop() {
 	log.Println("I! agent stopping")
 	a.stopLogAgent()
 	a.stopMetricsAgent()
+	a.stopTracesAgent()
 	log.Println("I! agent stopped")
 }
 

@@ -3,7 +3,7 @@
 
 ############################################################################
 # !!! uncomment [[instances]] to enable this plugin
-# [[instances]]
+[[instances]]
 # # interval = global.interval * interval_times
 # interval_times = 1
 
@@ -11,9 +11,8 @@
 # labels = { cluster="cloud-n9e-es" }
 
 ## specify a list of one or more Elasticsearch servers
-## you can add username and password to your url to use basic authentication:
-## servers = ["http://user:pass@localhost:9200"]
-servers = ["http://localhost:9200"]
+# servers = ["http://localhost:9200"]
+servers = []
 
 ## Timeout for HTTP requests to the elastic search server(s)
 http_timeout = "5s"
@@ -24,36 +23,32 @@ http_timeout = "5s"
 local = true
 
 ## Set cluster_health to true when you want to obtain cluster health stats
-cluster_health = false
+cluster_health = true
 
 ## Adjust cluster_health_level when you want to obtain detailed health stats
 ## The options are
 ##  - indices (default)
 ##  - cluster
-# cluster_health_level = "indices"
+cluster_health_level = "cluster"
 
 ## Set cluster_stats to true when you want to obtain cluster stats.
-cluster_stats = false
-
-## Only gather cluster_stats from the master node. To work this require local = true
-cluster_stats_only_from_master = true
+cluster_stats = true
 
 ## Indices to collect; can be one or more indices names or _all
 ## Use of wildcards is allowed. Use a wildcard at the end to retrieve index names that end with a changing value, like a date.
-indices_include = ["_all"]
+# indices_include = ["zipkin*"]
 
-## One of "shards", "cluster", "indices"
-## Currently only "shards" is implemented
-indices_level = "shards"
+## use "shards" or blank string for indices level
+indices_level = ""
 
 ## node_stats is a list of sub-stats that you want to have gathered. Valid options
 ## are "indices", "os", "process", "jvm", "thread_pool", "fs", "transport", "http",
 ## "breaker". Per default, all stats are gathered.
-# node_stats = ["jvm", "http"]
+node_stats = ["jvm", "breaker"]
 
 ## HTTP Basic Authentication username and password.
-# username = ""
-# password = ""
+username = "elastic"
+password = "password"
 
 ## Optional TLS Config
 # use_tls = false
@@ -67,4 +62,4 @@ indices_level = "shards"
 ## Each 'indices_include' entry ending with a wildcard (*) or glob matching pattern will group together all indices that match it, and 
 ## sort them by the date or number after the wildcard. Metrics then are gathered for only the 'num_most_recent_indices' amount of most 
 ## recent indices.
-# num_most_recent_indices = 0
+num_most_recent_indices = 1
