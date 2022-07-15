@@ -82,6 +82,10 @@ func (d *Docker) Gather(slist *list.SafeList) {
 	for i := range d.Instances {
 		ins := d.Instances[i]
 
+		if len(ins.Endpoint) == 0 {
+			continue
+		}
+
 		d.waitgrp.Add(1)
 		go func(slist *list.SafeList, ins *Instance) {
 			defer d.waitgrp.Done()
@@ -129,6 +133,10 @@ type Instance struct {
 }
 
 func (ins *Instance) Init() error {
+	if len(ins.Endpoint) == 0 {
+		return nil
+	}
+
 	c, err := ins.getNewClient()
 	if err != nil {
 		return err
@@ -347,7 +355,7 @@ func (ins *Instance) gatherContainerInspect(container types.Container, slist *li
 		statefields["docker_container_status_uptime"] = uptime.Seconds()
 	}
 
-	itypes.PushSamples(slist, statefields, tags, ins.Labels)
+	inputs.PushSamples(slist, statefields, tags, ins.Labels)
 
 	if info.State.Health != nil {
 		slist.PushFront(itypes.NewSample("docker_container_health_failing_streak", info.ContainerJSONBase.State.Health.FailingStreak, tags, ins.Labels))
@@ -430,7 +438,7 @@ func (ins *Instance) parseContainerStats(stat *types.StatsJSON, slist *list.Safe
 		memfields["docker_container_mem_private_working_set"] = stat.MemoryStats.PrivateWorkingSet
 	}
 
-	itypes.PushSamples(slist, memfields, tags, ins.Labels)
+	inputs.PushSamples(slist, memfields, tags, ins.Labels)
 
 	// cpu
 
@@ -455,7 +463,7 @@ func (ins *Instance) parseContainerStats(stat *types.StatsJSON, slist *list.Safe
 			cpufields["docker_container_cpu_usage_percent"] = cpuPercent
 		}
 
-		itypes.PushSamples(slist, cpufields, map[string]string{"cpu": "cpu-total"}, tags, ins.Labels)
+		inputs.PushSamples(slist, cpufields, map[string]string{"cpu": "cpu-total"}, tags, ins.Labels)
 	}
 
 	if choice.Contains("cpu", ins.PerDeviceInclude) && len(stat.CPUStats.CPUUsage.PercpuUsage) > 0 {
@@ -493,7 +501,7 @@ func (ins *Instance) parseContainerStats(stat *types.StatsJSON, slist *list.Safe
 		}
 
 		if choice.Contains("network", ins.PerDeviceInclude) {
-			itypes.PushSamples(slist, netfields, map[string]string{"network": network}, tags, ins.Labels)
+			inputs.PushSamples(slist, netfields, map[string]string{"network": network}, tags, ins.Labels)
 		}
 
 		if choice.Contains("network", ins.TotalInclude) {
@@ -520,7 +528,7 @@ func (ins *Instance) parseContainerStats(stat *types.StatsJSON, slist *list.Safe
 
 	// totalNetworkStatMap could be empty if container is running with --net=host.
 	if choice.Contains("network", ins.TotalInclude) && len(totalNetworkStatMap) != 0 {
-		itypes.PushSamples(slist, totalNetworkStatMap, map[string]string{"network": "total"}, tags, ins.Labels)
+		inputs.PushSamples(slist, totalNetworkStatMap, map[string]string{"network": "total"}, tags, ins.Labels)
 	}
 
 	ins.gatherBlockIOMetrics(slist, stat, tags)
@@ -536,7 +544,7 @@ func (ins *Instance) gatherBlockIOMetrics(slist *list.SafeList, stat *types.Stat
 	totalStatMap := make(map[string]interface{})
 	for device, fields := range deviceStatMap {
 		if perDeviceBlkio {
-			itypes.PushSamples(slist, fields, map[string]string{"device": device}, tags, ins.Labels)
+			inputs.PushSamples(slist, fields, map[string]string{"device": device}, tags, ins.Labels)
 		}
 		if totalBlkio {
 			for field, value := range fields {
@@ -561,7 +569,7 @@ func (ins *Instance) gatherBlockIOMetrics(slist *list.SafeList, stat *types.Stat
 	}
 
 	if totalBlkio {
-		itypes.PushSamples(slist, totalStatMap, map[string]string{"device": "total"}, tags, ins.Labels)
+		inputs.PushSamples(slist, totalStatMap, map[string]string{"device": "total"}, tags, ins.Labels)
 	}
 }
 
@@ -692,7 +700,7 @@ func (ins *Instance) gatherSwarmInfo(slist *list.SafeList) {
 			log.Println("E! Unknown replica mode")
 		}
 
-		itypes.PushSamples(slist, fields, tags, ins.Labels)
+		inputs.PushSamples(slist, fields, tags, ins.Labels)
 	}
 }
 
@@ -720,7 +728,7 @@ func (ins *Instance) gatherInfo(slist *list.SafeList) error {
 		"docker_memory_total":            info.MemTotal,
 	}
 
-	itypes.PushSamples(slist, fields, ins.Labels)
+	inputs.PushSamples(slist, fields, ins.Labels)
 	return nil
 }
 

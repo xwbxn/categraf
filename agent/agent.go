@@ -15,12 +15,16 @@ import (
 	_ "flashcat.cloud/categraf/inputs/elasticsearch"
 	_ "flashcat.cloud/categraf/inputs/exec"
 	_ "flashcat.cloud/categraf/inputs/http_response"
+	_ "flashcat.cloud/categraf/inputs/jolokia_agent"
+	_ "flashcat.cloud/categraf/inputs/jolokia_proxy"
 	_ "flashcat.cloud/categraf/inputs/kafka"
 	_ "flashcat.cloud/categraf/inputs/kernel"
 	_ "flashcat.cloud/categraf/inputs/kernel_vmstat"
 	_ "flashcat.cloud/categraf/inputs/kubernetes"
 	_ "flashcat.cloud/categraf/inputs/linux_sysctl_fs"
+	_ "flashcat.cloud/categraf/inputs/logstash"
 	_ "flashcat.cloud/categraf/inputs/mem"
+	_ "flashcat.cloud/categraf/inputs/mongodb"
 	_ "flashcat.cloud/categraf/inputs/mysql"
 	_ "flashcat.cloud/categraf/inputs/net"
 	_ "flashcat.cloud/categraf/inputs/net_response"
@@ -35,6 +39,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/prometheus"
 	_ "flashcat.cloud/categraf/inputs/rabbitmq"
 	_ "flashcat.cloud/categraf/inputs/redis"
+	_ "flashcat.cloud/categraf/inputs/redis_sentinel"
 	_ "flashcat.cloud/categraf/inputs/switch_legacy"
 	_ "flashcat.cloud/categraf/inputs/system"
 	_ "flashcat.cloud/categraf/inputs/tomcat"
@@ -59,6 +64,7 @@ func (a *Agent) Start() {
 	a.startLogAgent()
 	a.startMetricsAgent()
 	a.startTracesAgent()
+	a.startPrometheusScrape()
 	log.Println("I! agent started")
 }
 
@@ -67,6 +73,7 @@ func (a *Agent) Stop() {
 	a.stopLogAgent()
 	a.stopMetricsAgent()
 	a.stopTracesAgent()
+	a.stopPrometheusScrape()
 	log.Println("I! agent stopped")
 }
 

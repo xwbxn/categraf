@@ -2,7 +2,6 @@ package tomcat
 
 import (
 	"encoding/xml"
-	"errors"
 	"log"
 	"net/http"
 	"net/url"
@@ -80,7 +79,7 @@ type Instance struct {
 
 func (ins *Instance) Init() error {
 	if ins.URL == "" {
-		return errors.New("url is blank")
+		return nil
 	}
 
 	if ins.Timeout <= 0 {
@@ -170,6 +169,9 @@ func (t *Tomcat) Gather(slist *list.SafeList) {
 	atomic.AddUint64(&t.Counter, 1)
 	for i := range t.Instances {
 		ins := t.Instances[i]
+		if ins.URL == "" {
+			continue
+		}
 		t.wg.Add(1)
 		go t.gatherOnce(slist, ins)
 	}
@@ -242,7 +244,7 @@ func (t *Tomcat) gatherOnce(slist *list.SafeList, ins *Instance) {
 			"jvm_memorypool_used":      mp.UsageUsed,
 		}
 
-		types.PushSamples(slist, tcmpFields, tags, tcmpTags)
+		inputs.PushSamples(slist, tcmpFields, tags, tcmpTags)
 	}
 
 	// add tomcat_connector measurements
@@ -268,6 +270,6 @@ func (t *Tomcat) gatherOnce(slist *list.SafeList, ins *Instance) {
 			"connector_bytes_sent":           c.RequestInfo.BytesSent,
 		}
 
-		types.PushSamples(slist, tccFields, tags, tccTags)
+		inputs.PushSamples(slist, tccFields, tags, tccTags)
 	}
 }

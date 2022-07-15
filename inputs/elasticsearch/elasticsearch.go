@@ -110,11 +110,6 @@ func (r *Elasticsearch) Init() error {
 	}
 
 	for i := 0; i < len(r.Instances); i++ {
-		if r.Instances[i].TargetsEmpty() {
-			log.Println("W! targets empty")
-			continue
-		}
-
 		if err := r.Instances[i].Init(); err != nil {
 			return err
 		}
@@ -131,7 +126,7 @@ func (r *Elasticsearch) Gather(slist *list.SafeList) {
 	for i := range r.Instances {
 		ins := r.Instances[i]
 
-		if ins.TargetsEmpty() {
+		if len(ins.Servers) == 0 {
 			continue
 		}
 
@@ -186,11 +181,11 @@ func (i serverInfo) isMaster() bool {
 	return i.nodeID == i.masterID
 }
 
-func (ins *Instance) TargetsEmpty() bool {
-	return len(ins.Servers) == 0
-}
-
 func (ins *Instance) Init() error {
+	if len(ins.Servers) == 0 {
+		return nil
+	}
+
 	if ins.HTTPTimeout <= 0 {
 		ins.HTTPTimeout = config.Duration(time.Second * 5)
 	}
@@ -536,7 +531,7 @@ func (ins *Instance) gatherClusterHealth(url string, address string, slist *list
 		"cluster_health_unassigned_shards":                healthStats.UnassignedShards,
 	}
 
-	types.PushSamples(slist, clusterFields, map[string]string{"cluster_name": healthStats.ClusterName}, addrTag, ins.Labels)
+	inputs.PushSamples(slist, clusterFields, map[string]string{"cluster_name": healthStats.ClusterName}, addrTag, ins.Labels)
 
 	for name, health := range healthStats.Indices {
 		indexFields := map[string]interface{}{
@@ -549,7 +544,7 @@ func (ins *Instance) gatherClusterHealth(url string, address string, slist *list
 			"cluster_health_indices_status_code":           mapHealthStatusToCode(health.Status),
 			"cluster_health_indices_unassigned_shards":     health.UnassignedShards,
 		}
-		types.PushSamples(slist, indexFields, map[string]string{"index": name, "name": healthStats.ClusterName}, addrTag, ins.Labels)
+		inputs.PushSamples(slist, indexFields, map[string]string{"index": name, "name": healthStats.ClusterName}, addrTag, ins.Labels)
 	}
 
 	return nil

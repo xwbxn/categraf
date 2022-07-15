@@ -2,7 +2,6 @@ package rabbitmq
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -60,6 +59,10 @@ func (r *RabbitMQ) Gather(slist *list.SafeList) {
 	for i := range r.Instances {
 		ins := r.Instances[i]
 
+		if ins.URL == "" {
+			continue
+		}
+
 		r.waitgrp.Add(1)
 		go func(slist *list.SafeList, ins *Instance) {
 			defer r.waitgrp.Done()
@@ -111,7 +114,7 @@ type Instance struct {
 
 func (ins *Instance) Init() error {
 	if ins.URL == "" {
-		return errors.New("url is blank")
+		return nil
 	}
 
 	var err error
@@ -509,7 +512,7 @@ func gatherOverview(ins *Instance, slist *list.SafeList) {
 		"overview_return_unroutable_rate":    overview.MessageStats.ReturnUnroutableDetails.Rate,
 	}
 
-	types.PushSamples(slist, fields, tags)
+	inputs.PushSamples(slist, fields, tags)
 }
 
 func gatherExchanges(ins *Instance, slist *list.SafeList) {
@@ -546,7 +549,7 @@ func gatherExchanges(ins *Instance, slist *list.SafeList) {
 			"exchange_messages_publish_out_rate": exchange.MessageStats.PublishOutDetails.Rate,
 		}
 
-		types.PushSamples(slist, fields, tags)
+		inputs.PushSamples(slist, fields, tags)
 	}
 }
 
@@ -604,7 +607,7 @@ func gatherFederationLinks(ins *Instance, slist *list.SafeList) {
 			"federation_messages_return_unroutable": link.LocalChannel.MessageStats.ReturnUnroutable,
 		}
 
-		types.PushSamples(slist, fields, tags, ins.Labels)
+		inputs.PushSamples(slist, fields, tags, ins.Labels)
 	}
 }
 
@@ -734,7 +737,7 @@ func gatherNodes(ins *Instance, slist *list.SafeList) {
 				}
 			}
 
-			types.PushSamples(slist, fields, tags, ins.Labels)
+			inputs.PushSamples(slist, fields, tags, ins.Labels)
 		}(node)
 	}
 
@@ -818,6 +821,6 @@ func gatherQueues(ins *Instance, slist *list.SafeList) {
 			"queue_messages_redeliver_rate":   queue.MessageStats.RedeliverDetails.Rate,
 		}
 
-		types.PushSamples(slist, fields, tags, ins.Labels)
+		inputs.PushSamples(slist, fields, tags, ins.Labels)
 	}
 }
