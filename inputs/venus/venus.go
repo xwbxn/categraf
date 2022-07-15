@@ -114,7 +114,7 @@ func (ins *Instance) gatherOnce(slist *list.SafeList) {
 	snmpPDUs, err = sw.RunSnmp(ins.IP, ins.Community, "1.3.6.1.4.1.15227.1.3.1.1.3.0", "get", int(ins.SnmpTimeoutMs))
 	if len(snmpPDUs) > 0 && err == nil {
 		metric, _ := conv.ToFloat64(snmpPDUs[0].Value)
-		fields["adc_sessions"] = metric
+		fields["sessions"] = metric
 	}
 
 	// forwardRate kbps
