@@ -1,0 +1,9 @@
+# collect interval
+# interval = 15
+
+# [[instances]]
+# labels = {}
+# interval_times = 1
+# ip = "192.168.0.1"
+# snmp_timeout_ms = 1000
+# community = "public"

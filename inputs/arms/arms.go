@@ -158,6 +158,6 @@ func (ins *Instance) gatherOnce(slist *list.SafeList) {
 			"errrate": metric.ERRRATE,
 		}
 
-		types.PushSamples(slist, fields, tags)
+		inputs.PushSamples(slist, fields, tags)
 	}
 }
