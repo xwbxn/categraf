@@ -1,10 +1,14 @@
 # Categraf
-[![Release](https://github.com/flashcatcloud/categraf/workflows/Release/badge.svg)](https://github.com/flashcatcloud/categraf/actions?query=workflow%3ARelease)
-[![Powered By Flashcat](https://img.shields.io/badge/Powered%20By-Flashcat-red)](https://flashcat.cloud/)
+[![Powered By Flashcat](https://img.shields.io/badge/Powered%20By-Flashcat-blueviolet)](https://flashcat.cloud/)
+[![Release](https://img.shields.io/github/v/release/flashcatcloud/categraf)](https://github.com/flashcatcloud/categraf/releases/latest)
+[![Docker pulls](https://img.shields.io/docker/pulls/flashcatcloud/categraf)](https://hub.docker.com/r/flashcatcloud/categraf/)
+[![Starts](https://img.shields.io/github/stars/flashcatcloud/categraf)](https://github.com/flashcatcloud/categraf/stargazers)
+[![Forks](https://img.shields.io/github/forks/flashcatcloud/categraf)](https://github.com/flashcatcloud/categraf/fork)
+[![Contributors](https://img.shields.io/github/contributors-anon/flashcatcloud/categraf)](https://github.com/flashcatcloud/categraf/graphs/contributors)
+[!["License"](https://img.shields.io/badge/license-MIT-red)](https://github.com/flashcatcloud/categraf/blob/main/LICENSE)
 
 Categraf is a monitoring agent for nightingale / prometheus / m3db / victoriametrics / thanos / influxdb / tdengine.
 
-[![dockeri.co](https://dockeri.co/image/flashcatcloud/categraf)](https://hub.docker.com/r/flashcatcloud/categraf/)
 
 ## Links
 
@@ -54,16 +58,19 @@ nohup ./categraf &> stdout.log &
 ```
 
 
-## Deploy categraf as daemonset
+## Deploy categraf as daemonset, deployment or sidecar
 
 edit k8s/daemonset.yaml, replace NSERVER_SERVICE_WITH_PORT with service ip:port of nserver in your cluster, replace CATEGRAF_NAMESPACE with namespace value, then run:
 
 ```shell
-kubectl apply -n monitoring -f k8s/daemonset.yaml
-kubectl apply -n monitoring -f k8s/sidecar.yaml
+kubectl apply -n monitoring -f k8s/daemonset.yaml # collect metrics, metrics/cadvisor of node
+kubectl apply -n monitoring -f k8s/sidecar.yaml # collect service metrics
+kubectl apply -n monitoring -f k8s/deployment.yaml #collect apiserver coredns etc
 ```
-Notice: k8s/sidecar.yaml is a demo, replace mock with your own image.
+Notice: k8s/sidecar.yaml is a demo, replace mock with your own image of service.
 
+## Scrape like prometheus
+see detail [here](https://github.com/flashcatcloud/categraf/blob/main/prometheus/README.md)
 
 ## Plugin
 
