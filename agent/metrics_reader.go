@@ -3,6 +3,8 @@ package agent
 import (
 	"log"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"flashcat.cloud/categraf/config"
@@ -19,10 +21,17 @@ const agentHostnameLabelKey = "agent_hostname"
 var metricReplacer = strings.NewReplacer("-", "_", ".", "_", " ", "_", "'", "_", "\"", "_")
 
 type InputReader struct {
-	inputName string
-	input     inputs.Input
-	quitChan  chan struct{}
-	queue     chan *types.Sample
+	inputName  string
+	input      inputs.Input
+	quitChan   chan struct{}
+	runCounter uint64
+	waitGroup  sync.WaitGroup
+}
+
+func (a *Agent) StartInputReader(name string, in inputs.Input) {
+	reader := NewInputReader(name, in)
+	go reader.startInput()
+	a.InputReaders[name] = reader
 }
 
 func NewInputReader(inputName string, in inputs.Input) *InputReader {
@@ -30,16 +39,7 @@ func NewInputReader(inputName string, in inputs.Input) *InputReader {
 		inputName: inputName,
 		input:     in,
 		quitChan:  make(chan struct{}, 1),
-		queue:     make(chan *types.Sample, config.Config.WriterOpt.ChanSize),
 	}
-}
-
-func (r *InputReader) Start() {
-	// start consumer goroutines
-	go r.read()
-
-	// start collector instance
-	go r.startInput()
 }
 
 func (r *InputReader) Stop() {
@@ -57,10 +57,8 @@ func (r *InputReader) startInput() {
 		select {
 		case <-r.quitChan:
 			close(r.quitChan)
-			close(r.queue)
 			return
 		default:
-			time.Sleep(interval)
 			var start time.Time
 			if config.Config.DebugMode {
 				start = time.Now()
@@ -70,11 +68,45 @@ func (r *InputReader) startInput() {
 			r.gatherOnce()
 
 			if config.Config.DebugMode {
-				ms := time.Since(start).Milliseconds()
-				log.Println("D!", r.inputName, ": after gather once,", "duration:", ms, "ms")
+				log.Println("D!", r.inputName, ": after gather once,", "duration:", time.Since(start))
 			}
+
+			time.Sleep(interval)
 		}
 	}
+}
+
+func (r *InputReader) work(slist *list.SafeList) {
+	instances := r.input.GetInstances()
+	if instances == nil {
+		r.input.Gather(slist)
+		return
+	}
+
+	if len(instances) == 0 {
+		return
+	}
+
+	atomic.AddUint64(&r.runCounter, 1)
+
+	for i := 0; i < len(instances); i++ {
+		r.waitGroup.Add(1)
+		go func(slist *list.SafeList, ins inputs.Instance) {
+			defer r.waitGroup.Done()
+
+			it := ins.GetIntervalTimes()
+			if it > 0 {
+				counter := atomic.LoadUint64(&r.runCounter)
+				if counter%uint64(it) != 0 {
+					return
+				}
+			}
+
+			ins.Gather(slist)
+		}(slist, instances[i])
+	}
+
+	r.waitGroup.Wait()
 }
 
 func (r *InputReader) gatherOnce() {
@@ -86,7 +118,7 @@ func (r *InputReader) gatherOnce() {
 
 	// gather
 	slist := list.NewSafeList()
-	r.input.Gather(slist)
+	r.work(slist)
 
 	// handle result
 	samples := slist.PopBackAll()
@@ -140,49 +172,9 @@ func (r *InputReader) gatherOnce() {
 		}
 
 		// write to remote write queue
-		r.queue <- s
+		writer.PushQueue(s)
 
 		// write to clickhouse queue
 		house.MetricsHouse.Push(s)
-	}
-}
-
-func (r *InputReader) read() {
-	batch := config.Config.WriterOpt.Batch
-	if batch <= 0 {
-		batch = 2000
-	}
-
-	series := make([]*types.Sample, 0, batch)
-
-	var count int
-
-	for {
-		select {
-		case item, open := <-r.queue:
-			if !open {
-				// queue closed
-				return
-			}
-
-			if item == nil {
-				continue
-			}
-
-			series = append(series, item)
-			count++
-			if count >= batch {
-				writer.PostSeries(series)
-				count = 0
-				series = make([]*types.Sample, 0, batch)
-			}
-		default:
-			if len(series) > 0 {
-				writer.PostSeries(series)
-				count = 0
-				series = make([]*types.Sample, 0, batch)
-			}
-			time.Sleep(time.Millisecond * 100)
-		}
 	}
 }
