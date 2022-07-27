@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -12,10 +13,7 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
 	"github.com/miekg/dns"
-	"github.com/toolkits/pkg/container/list"
 )
-
-const inputName = "dns_query"
 
 type ResultType uint64
 
@@ -26,20 +24,19 @@ const (
 )
 
 type DnsQuery struct {
-	config.Interval
+	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
 }
 
 func init() {
-	inputs.Add(inputName, func() inputs.Input {
+	inputs.Add("dns_query", func() inputs.Input {
 		return &DnsQuery{}
 	})
 }
 
-func (dq *DnsQuery) Prefix() string              { return inputName }
-func (dq *DnsQuery) Init() error                 { return nil }
-func (dq *DnsQuery) Drop()                       {}
-func (dq *DnsQuery) Gather(slist *list.SafeList) {}
+func (dq *DnsQuery) Init() error                    { return nil }
+func (dq *DnsQuery) Drop()                          {}
+func (dq *DnsQuery) Gather(slist *types.SampleList) {}
 
 func (dq *DnsQuery) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(dq.Instances))
@@ -52,6 +49,7 @@ func (dq *DnsQuery) GetInstances() []inputs.Instance {
 type Instance struct {
 	config.InstanceConfig
 
+	EnableAutoDetectDnsServer bool `toml:"auto_detect_local_dns_server"`
 	// Domains or subdomains to query
 	Domains []string `toml:"domains"`
 
@@ -72,6 +70,21 @@ type Instance struct {
 }
 
 func (ins *Instance) Init() error {
+	if len(ins.Servers) == 0 && ins.EnableAutoDetectDnsServer {
+		resolvPath := "/etc/resolv.conf"
+		if _, err := os.Stat(resolvPath); os.IsNotExist(err) {
+			return types.ErrInstancesEmpty
+		}
+
+		config, err := dns.ClientConfigFromFile(resolvPath)
+		if err != nil {
+			log.Println("E! failed to detect local dns server:", err)
+			return types.ErrInstancesEmpty
+		}
+
+		ins.Servers = config.Servers
+	}
+
 	if len(ins.Servers) == 0 {
 		return types.ErrInstancesEmpty
 	}
@@ -100,7 +113,7 @@ func (ins *Instance) Init() error {
 	return nil
 }
 
-func (ins *Instance) Gather(slist *list.SafeList) {
+func (ins *Instance) Gather(slist *types.SampleList) {
 	var wg sync.WaitGroup
 
 	for _, domain := range ins.Domains {
@@ -129,7 +142,7 @@ func (ins *Instance) Gather(slist *list.SafeList) {
 					log.Println("E!", err)
 				}
 
-				inputs.PushSamples(slist, fields, tags, ins.Labels)
+				slist.PushSamples("dns_query", fields, tags)
 				wg.Done()
 			}(domain, server)
 		}

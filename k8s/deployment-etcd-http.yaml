@@ -53,18 +53,6 @@ subjects:
 ---
 kind: ConfigMap
 metadata:
-  name: etcd-pki
-apiVersion: v1
-data:
-  ca.crt: |
-    {data of your etcd ca file}
-  client.crt: |
-    {data of your etcd client cert file}
-  client.key: |
-    {data of your etcd client key file}
----
-kind: ConfigMap
-metadata:
   name: categraf-config
 apiVersion: v1
 data:
@@ -195,12 +183,7 @@ data:
         metrics_path: "/metrics"
         kubernetes_sd_configs:
           - role: endpoints
-        scheme: https
-        tls_config:
-          ca_file: /opt/categraf/pki/etcd/ca.crt
-          cert_file: /opt/categraf/pki/etcd/client.crt
-          key_file: /opt/categraf/pki/etcd/client.key
-          insecure_skip_verify: true
+        scheme: http
         relabel_configs:
           - source_labels:
               [
@@ -209,7 +192,7 @@ data:
                 __meta_kubernetes_endpoint_port_name,
               ]
             action: keep
-            regex: kube-system;etcd;https
+            regex: kube-system;etcd;http
 
       - job_name: "coredns"
         metrics_path: "/metrics"
@@ -275,8 +258,6 @@ spec:
           name: categraf-config
         - mountPath: /opt/categraf/scrape
           name: scrape-config
-        - mountPath: /opt/categraf/pki/etcd
-          name: etcd-pki
       dnsPolicy: ClusterFirst
       hostNetwork: false
       restartPolicy: Always
@@ -296,6 +277,3 @@ spec:
           defaultMode: 420
           name: scrape-config
         name: scrape-config
-      - configMap:
-          name: etcd-pki
-        name: etcd-pki

@@ -9,7 +9,6 @@ import (
 	"log"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"flashcat.cloud/categraf/config"
@@ -19,7 +18,6 @@ import (
 	"github.com/godror/godror"
 	"github.com/godror/godror/dsn"
 	"github.com/jmoiron/sqlx"
-	"github.com/toolkits/pkg/container/list"
 )
 
 const inputName = "oracle"
@@ -50,7 +48,7 @@ type MetricConfig struct {
 }
 
 type Oracle struct {
-	config.Interval
+	config.PluginConfig
 	Instances []*Instance    `toml:"instances"`
 	Metrics   []MetricConfig `toml:"metrics"`
 }
@@ -61,9 +59,8 @@ func init() {
 	})
 }
 
-func (o *Oracle) Prefix() string              { return inputName }
-func (o *Oracle) Init() error                 { return nil }
-func (o *Oracle) Gather(slist *list.SafeList) {}
+func (o *Oracle) Init() error                    { return nil }
+func (o *Oracle) Gather(slist *types.SampleList) {}
 
 func (o *Oracle) Drop() {
 	for i := 0; i < len(o.Instances); i++ {
@@ -86,12 +83,13 @@ func (ins *Instance) Init() error {
 
 	connString := ins.getConnectionString()
 	var err error
-	client, err = sqlx.Open("godror", connString)
+	ins.client, err = sqlx.Open("godror", connString)
 	if err != nil {
 		return fmt.Errorf("failed to open oracle connection: %v", err)
 	}
 
-	client.SetMaxOpenConns(ins.MaxOpenConnections)
+	ins.client.SetMaxOpenConns(ins.MaxOpenConnections)
+	return nil
 }
 
 func (ins *Instance) Drop() error {
@@ -99,33 +97,32 @@ func (ins *Instance) Drop() error {
 		log.Println("D! dropping oracle connection:", ins.Address)
 	}
 
-	if err := ins.Close(); err != nil {
+	if err := ins.client.Close(); err != nil {
 		log.Println("E! failed to close oracle connection:", ins.Address, "error:", err)
 	}
+
+	return nil
 }
 
-func (ins *Instance) Gather(slist *list.SafeList) {
+func (ins *Instance) Gather(slist *types.SampleList) {
 	tags := map[string]string{"address": ins.Address}
-	for k, v := range ins.Labels {
-		tags[k] = v
-	}
 
 	defer func(begun time.Time) {
 		use := time.Since(begun).Seconds()
-		slist.PushFront(types.NewSample("scrape_use_seconds", use, tags))
+		slist.PushFront(types.NewSample(inputName, "scrape_use_seconds", use, tags))
 	}(time.Now())
 
 	if err := ins.client.Ping(); err != nil {
-		slist.PushFront(types.NewSample("up", 0, tags))
+		slist.PushFront(types.NewSample(inputName, "up", 0, tags))
 		log.Println("E! failed to ping oracle:", ins.Address, "error:", err)
 	} else {
-		slist.PushFront(types.NewSample("up", 1, tags))
+		slist.PushFront(types.NewSample(inputName, "up", 1, tags))
 	}
 
 	waitMetrics := new(sync.WaitGroup)
 
-	for i := 0; i < len(o.Metrics); i++ {
-		m := o.Metrics[i]
+	for i := 0; i < len(ins.Metrics); i++ {
+		m := ins.Metrics[i]
 		waitMetrics.Add(1)
 		go ins.scrapeMetric(waitMetrics, slist, m, tags)
 	}
@@ -139,14 +136,14 @@ func (ins *Instance) Gather(slist *list.SafeList) {
 	waitMetrics.Wait()
 }
 
-func (ins *Instance) scrapeMetric(waitMetrics *sync.WaitGroup, slist *list.SafeList, metricConf MetricConfig, tags map[string]string) {
+func (ins *Instance) scrapeMetric(waitMetrics *sync.WaitGroup, slist *types.SampleList, metricConf MetricConfig, tags map[string]string) {
 	defer waitMetrics.Done()
 
 	timeout := time.Duration(metricConf.Timeout)
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	rows, err := client.QueryContext(ctx, metricConf.Request)
+	rows, err := ins.client.QueryContext(ctx, metricConf.Request)
 
 	if ctx.Err() == context.DeadlineExceeded {
 		log.Println("E! oracle query timeout, request:", metricConf.Request)
@@ -205,7 +202,7 @@ func (ins *Instance) scrapeMetric(waitMetrics *sync.WaitGroup, slist *list.SafeL
 	}
 }
 
-func (ins *Instance) parseRow(row map[string]string, metricConf MetricConfig, slist *list.SafeList, tags map[string]string) error {
+func (ins *Instance) parseRow(row map[string]string, metricConf MetricConfig, slist *types.SampleList, tags map[string]string) error {
 	labels := make(map[string]string)
 	for k, v := range tags {
 		labels[k] = v
@@ -226,10 +223,10 @@ func (ins *Instance) parseRow(row map[string]string, metricConf MetricConfig, sl
 		}
 
 		if metricConf.FieldToAppend == "" {
-			slist.PushFront(types.NewSample(metricConf.Mesurement+"_"+column, value, labels))
+			slist.PushFront(types.NewSample(inputName, metricConf.Mesurement+"_"+column, value, labels))
 		} else {
 			suffix := cleanName(row[metricConf.FieldToAppend])
-			slist.PushFront(types.NewSample(metricConf.Mesurement+"_"+suffix+"_"+column, value, labels))
+			slist.PushFront(types.NewSample(inputName, metricConf.Mesurement+"_"+suffix+"_"+column, value, labels))
 		}
 	}
 
