@@ -7,22 +7,17 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"sync"
-	"sync/atomic"
 	"time"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
-	"github.com/toolkits/pkg/container/list"
 )
 
 const inputName = "arms"
 
 type Arms struct {
-	config.Interval
-	counter   uint64
-	waitgrp   sync.WaitGroup
+	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
 }
 
@@ -30,10 +25,6 @@ func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &Arms{}
 	})
-}
-
-func (r *Arms) Prefix() string {
-	return inputName
 }
 
 func (r *Arms) Init() error {
@@ -52,27 +43,14 @@ func (r *Arms) Init() error {
 
 func (r *Arms) Drop() {}
 
-func (r *Arms) Gather(slist *list.SafeList) {
-	atomic.AddUint64(&r.counter, 1)
+func (r *Arms) Gather(slist *types.SampleList) {}
 
-	for i := range r.Instances {
-		ins := r.Instances[i]
-
-		r.waitgrp.Add(1)
-		go func(slist *list.SafeList, ins *Instance) {
-			defer r.waitgrp.Done()
-
-			if ins.IntervalTimes > 0 {
-				counter := atomic.LoadUint64(&r.counter)
-				if counter%uint64(ins.IntervalTimes) != 0 {
-					return
-				}
-			}
-			ins.gatherOnce(slist)
-		}(slist, ins)
+func (r *Arms) GetInstances() []inputs.Instance {
+	ret := make([]inputs.Instance, len(r.Instances))
+	for i := 0; i < len(r.Instances); i++ {
+		ret[i] = r.Instances[i]
 	}
-
-	r.waitgrp.Wait()
+	return ret
 }
 
 type ArmsMetric struct {
@@ -94,6 +72,7 @@ type ArmsResponse struct {
 }
 
 type Instance struct {
+	config.InstanceConfig
 	Labels        map[string]string `toml:"labels"`
 	IntervalTimes int64             `toml:"interval_times"`
 
@@ -108,7 +87,7 @@ func (ins *Instance) Init() error {
 	return nil
 }
 
-func (ins *Instance) gatherOnce(slist *list.SafeList) {
+func (ins *Instance) Gather(slist *types.SampleList) {
 	offset, _ := time.ParseDuration(ins.Offset)
 	startTime := time.Now().Add(offset)
 	endTime := startTime.Add(time.Minute * 1)
@@ -158,6 +137,6 @@ func (ins *Instance) gatherOnce(slist *list.SafeList) {
 			"errrate": metric.ERRRATE,
 		}
 
-		inputs.PushSamples(slist, fields, tags)
+		slist.PushSamples(inputName, fields, tags)
 	}
 }

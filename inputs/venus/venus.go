@@ -3,24 +3,19 @@ package venus
 import (
 	"fmt"
 	"strings"
-	"sync"
-	"sync/atomic"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/conv"
 	"flashcat.cloud/categraf/types"
 	"github.com/gaochao1/sw"
-	"github.com/toolkits/pkg/container/list"
 	go_snmp "github.com/ulricqin/gosnmp"
 )
 
 const inputName = "venus"
 
 type VenusADC struct {
-	config.Interval
-	counter   uint64
-	waitgrp   sync.WaitGroup
+	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
 }
 
@@ -28,10 +23,6 @@ func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &VenusADC{}
 	})
-}
-
-func (r *VenusADC) Prefix() string {
-	return inputName
 }
 
 func (r *VenusADC) Init() error {
@@ -48,33 +39,20 @@ func (r *VenusADC) Init() error {
 	return nil
 }
 
-func (r *VenusADC) Drop() {}
-
-func (r *VenusADC) Gather(slist *list.SafeList) {
-	atomic.AddUint64(&r.counter, 1)
-
-	for i := range r.Instances {
-		ins := r.Instances[i]
-
-		r.waitgrp.Add(1)
-		go func(slist *list.SafeList, ins *Instance) {
-			defer r.waitgrp.Done()
-
-			if ins.IntervalTimes > 0 {
-				counter := atomic.LoadUint64(&r.counter)
-				if counter%uint64(ins.IntervalTimes) != 0 {
-					return
-				}
-			}
-
-			ins.gatherOnce(slist)
-		}(slist, ins)
+func (r *VenusADC) GetInstances() []inputs.Instance {
+	ret := make([]inputs.Instance, len(r.Instances))
+	for i := 0; i < len(r.Instances); i++ {
+		ret[i] = r.Instances[i]
 	}
-
-	r.waitgrp.Wait()
+	return ret
 }
 
+func (r *VenusADC) Drop() {}
+
+func (r *VenusADC) Gather(slist *types.SampleList) {}
+
 type Instance struct {
+	config.InstanceConfig
 	Labels        map[string]string `toml:"labels"`
 	IntervalTimes int64             `toml:"interval_times"`
 	IP            string            `toml:"ip"`
@@ -86,7 +64,7 @@ func (ins *Instance) Init() error {
 	return nil
 }
 
-func (ins *Instance) gatherOnce(slist *list.SafeList) {
+func (ins *Instance) Gather(slist *types.SampleList) {
 	var err error
 	var snmpPDUs []go_snmp.SnmpPDU
 	var fields map[string]interface{} = make(map[string]interface{})
@@ -126,5 +104,5 @@ func (ins *Instance) gatherOnce(slist *list.SafeList) {
 		fields["forward_rate"] = metric
 	}
 
-	inputs.PushSamples(slist, fields, tags)
+	slist.PushSamples(inputName, fields, tags)
 }
