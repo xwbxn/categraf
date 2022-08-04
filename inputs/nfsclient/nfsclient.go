@@ -173,7 +173,6 @@ func (s *NfsClient) Init() error {
 			log.Println("D! Including these mount patterns:", s.IncludeMounts)
 		}
 	} else {
-		log.Println("Including all mounts.")
 		if config.Config.DebugMode {
 			log.Println("D! Including all mounts.")
 		}
@@ -212,12 +211,12 @@ func (s *NfsClient) Init() error {
 	return nil
 }
 
-func (r *NfsClient) Drop() {}
-
 func (s *NfsClient) Gather(slist *types.SampleList) {
 	file, err := os.Open(s.mountstatsPath)
 	if err != nil {
-		log.Println("E! Failed opening the", file, "file:", err)
+		if config.Config.DebugMode {
+			log.Println("D! Failed opening the", file, "file:", err)
+		}
 		return
 	}
 	defer file.Close()
@@ -230,9 +229,6 @@ func (s *NfsClient) Gather(slist *types.SampleList) {
 	if err := scanner.Err(); err != nil {
 		log.Println("E!", err)
 	}
-}
-func (s *NfsClient) GetInstances() []inputs.Instance {
-	return nil
 }
 
 func convertToUint64(line []string) ([]uint64, error) {

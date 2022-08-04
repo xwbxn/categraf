@@ -16,6 +16,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/elasticsearch"
 	_ "flashcat.cloud/categraf/inputs/exec"
 	_ "flashcat.cloud/categraf/inputs/http_response"
+	_ "flashcat.cloud/categraf/inputs/jenkins"
 	_ "flashcat.cloud/categraf/inputs/jolokia_agent"
 	_ "flashcat.cloud/categraf/inputs/jolokia_proxy"
 	_ "flashcat.cloud/categraf/inputs/kafka"
@@ -65,8 +66,14 @@ func NewAgent(filters map[string]struct{}) *Agent {
 func (a *Agent) Start() {
 	log.Println("I! agent starting")
 	a.startLogAgent()
-	a.startMetricsAgent()
-	a.startTracesAgent()
+	err := a.startMetricsAgent()
+	if err != nil {
+		log.Println(err)
+	}
+	err = a.startTracesAgent()
+	if err != nil {
+		log.Println(err)
+	}
 	a.startPrometheusScrape()
 	log.Println("I! agent started")
 }
@@ -75,7 +82,10 @@ func (a *Agent) Stop() {
 	log.Println("I! agent stopping")
 	a.stopLogAgent()
 	a.stopMetricsAgent()
-	a.stopTracesAgent()
+	err := a.stopTracesAgent()
+	if err != nil {
+		log.Println(err)
+	}
 	a.stopPrometheusScrape()
 	log.Println("I! agent stopped")
 }

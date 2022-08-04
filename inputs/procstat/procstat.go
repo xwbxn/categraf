@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os/exec"
 	"runtime"
 	"strings"
 	"time"
@@ -70,10 +71,6 @@ func init() {
 	})
 }
 
-func (s *Procstat) Init() error                    { return nil }
-func (s *Procstat) Drop()                          {}
-func (s *Procstat) Gather(slist *types.SampleList) {}
-
 func (s *Procstat) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(s.Instances))
 	for i := 0; i < len(s.Instances); i++ {
@@ -134,8 +131,10 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 			ins.gatherMem(slist, ins.procs, tags)
 		case "limit":
 			ins.gatherLimit(slist, ins.procs, tags)
+		case "jvm":
+			ins.gatherJvm(slist, ins.procs, tags)
 		default:
-			log.Println("unknown choice in gather_more_metrics:", field)
+			log.Println("E! unknown choice in gather_more_metrics:", field)
 		}
 	}
 }
@@ -329,6 +328,46 @@ func (ins *Instance) gatherLimit(slist *types.SampleList, procs map[PID]Process,
 		slist.PushFront(types.NewSample(inputName, "rlimit_num_fds_soft_minimum", softMin, tags))
 		slist.PushFront(types.NewSample(inputName, "rlimit_num_fds_hard_minimum", hardMin, tags))
 	}
+}
+
+func (ins *Instance) gatherJvm(slist *types.SampleList, procs map[PID]Process, tags map[string]string) {
+	for pid := range procs {
+		jvmStat, err := execJstat(pid)
+		if err != nil {
+			log.Println("E! failed to exec jstat:", err)
+			continue
+		}
+
+		pidTag := map[string]string{"pid": fmt.Sprint(pid)}
+		for k, v := range jvmStat {
+			slist.PushSample(inputName, "jvm_"+k, v, pidTag, tags)
+		}
+	}
+}
+
+func execJstat(pid PID) (map[string]string, error) {
+	bin, err := exec.LookPath("jstat")
+	if err != nil {
+		return nil, err
+	}
+
+	out, err := exec.Command(bin, "-gc", fmt.Sprint(pid)).Output()
+	if err != nil {
+		return nil, err
+	}
+
+	jvm := strings.Fields(string(out))
+	if len(jvm)%2 != 0 {
+		return nil, fmt.Errorf("failed to parse jstat output: %v", jvm)
+	}
+
+	jvmMetrics := make(map[string]string)
+	half := len(jvm) / 2
+	for i := 0; i < half; i++ {
+		jvmMetrics[jvm[i]] = jvm[i+half]
+	}
+
+	return jvmMetrics, err
 }
 
 func (ins *Instance) winServicePIDs() ([]PID, error) {
