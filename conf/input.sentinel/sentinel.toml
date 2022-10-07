@@ -1,0 +1,10 @@
+# collect interval
+# interval = 15
+
+# [[instances]]
+# labels = { app="" }
+# interval_times = 1
+# url = ""
+# username = ""
+# password = ""
+# endpoints = [""]
