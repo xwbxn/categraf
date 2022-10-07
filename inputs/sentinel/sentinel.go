@@ -62,7 +62,6 @@ var cookieStore map[string][]*http.Cookie = make(map[string][]*http.Cookie)
 
 func login(ins *Instance) {
 	url := fmt.Sprintf(ins.Url+"/auth/login?password=%s&username=%s", ins.Password, ins.Username)
-	log.Println(url)
 	resp, err := http.PostForm(url, nil)
 	if err != nil {
 		log.Println("E! ", inputName, err.Error())
