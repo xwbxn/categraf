@@ -113,6 +113,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		}
 
 		if resp.StatusCode == 401 {
+			log.Println("I! ", inputName, "Session losted, reLogon")
 			delete(cookieStore, ins.Url)
 			return
 		}
