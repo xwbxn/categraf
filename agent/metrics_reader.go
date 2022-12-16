@@ -2,20 +2,16 @@ package agent
 
 import (
 	"log"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"flashcat.cloud/categraf/config"
-	"flashcat.cloud/categraf/house"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/runtimex"
 	"flashcat.cloud/categraf/types"
 	"flashcat.cloud/categraf/writer"
 )
-
-var metricReplacer = strings.NewReplacer("-", "_", ".", "_", " ", "_", "'", "_", "\"", "_")
 
 type InputReader struct {
 	inputName  string
@@ -25,13 +21,7 @@ type InputReader struct {
 	waitGroup  sync.WaitGroup
 }
 
-func (a *Agent) StartInputReader(name string, in inputs.Input) {
-	reader := NewInputReader(name, in)
-	go reader.startInput()
-	a.InputReaders[name] = reader
-}
-
-func NewInputReader(inputName string, in inputs.Input) *InputReader {
+func newInputReader(inputName string, in inputs.Input) *InputReader {
 	return &InputReader{
 		inputName: inputName,
 		input:     in,
@@ -119,8 +109,5 @@ func (r *InputReader) forward(slist *types.SampleList) {
 		return
 	}
 	arr := slist.PopBackAll()
-	for i := 0; i < len(arr); i++ {
-		writer.PushQueue(arr[i])
-		house.MetricsHouse.Push(arr[i])
-	}
+	writer.WriteSamples(arr)
 }

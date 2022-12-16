@@ -5,21 +5,49 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
+	"time"
 
-	"flashcat.cloud/categraf/config"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/snappy"
 	"github.com/prometheus/client_golang/api"
 	"github.com/prometheus/prometheus/prompb"
+
+	"flashcat.cloud/categraf/config"
 )
 
-type WriterType struct {
+type Writer struct {
 	Opts   config.WriterOption
 	Client api.Client
 }
 
-func (w WriterType) Write(items []prompb.TimeSeries) {
+// newWriter creates a new Writer from config.WriterOption
+func newWriter(opt config.WriterOption) (Writer, error) {
+	cli, err := api.NewClient(api.Config{
+		Address: opt.Url,
+		RoundTripper: &http.Transport{
+			// TLSClientConfig: tlsConfig,
+			Proxy: http.ProxyFromEnvironment,
+			DialContext: (&net.Dialer{
+				Timeout: time.Duration(opt.DialTimeout) * time.Millisecond,
+			}).DialContext,
+			ResponseHeaderTimeout: time.Duration(opt.Timeout) * time.Millisecond,
+			MaxIdleConnsPerHost:   opt.MaxIdleConnsPerHost,
+		},
+	})
+
+	if err != nil {
+		return Writer{}, err
+	}
+
+	return Writer{
+		Opts:   opt,
+		Client: cli,
+	}, nil
+}
+
+func (w Writer) Write(items []prompb.TimeSeries) {
 	if len(items) == 0 {
 		return
 	}
@@ -34,13 +62,13 @@ func (w WriterType) Write(items []prompb.TimeSeries) {
 		return
 	}
 
-	if err := w.Post(snappy.Encode(nil, data)); err != nil {
+	if err := w.post(snappy.Encode(nil, data)); err != nil {
 		log.Println("W! post to", w.Opts.Url, "got error:", err)
 		log.Println("W! example timeseries:", items[0].String())
 	}
 }
 
-func (w WriterType) Post(req []byte) error {
+func (w Writer) post(req []byte) error {
 	httpReq, err := http.NewRequest("POST", w.Opts.Url, bytes.NewReader(req))
 	if err != nil {
 		log.Println("W! create remote write request got error:", err)

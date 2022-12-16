@@ -7,13 +7,11 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strings"
 	"syscall"
 
 	"flashcat.cloud/categraf/agent"
 	"flashcat.cloud/categraf/api"
 	"flashcat.cloud/categraf/config"
-	"flashcat.cloud/categraf/house"
 	"flashcat.cloud/categraf/pkg/osx"
 	"flashcat.cloud/categraf/writer"
 	"github.com/chai2010/winsvc"
@@ -53,7 +51,7 @@ func main() {
 	printEnv()
 
 	// init configs
-	if err := config.InitConfig(*configDir, *debugMode, *testMode, *interval); err != nil {
+	if err := config.InitConfig(*configDir, *debugMode, *testMode, *interval, *inputFilters); err != nil {
 		log.Fatalln("F! failed to init config:", err)
 	}
 
@@ -62,7 +60,7 @@ func main() {
 	go api.Start()
 	go agent.Report()
 
-	ag, err := agent.NewAgent(parseFilter(*inputFilters))
+	ag, err := agent.NewAgent()
 	if err != nil {
 		fmt.Println("F! failed to init agent:", err)
 		os.Exit(-1)
@@ -73,10 +71,6 @@ func main() {
 func initWriters() {
 	if err := writer.InitWriters(); err != nil {
 		log.Fatalln("F! failed to init writer:", err)
-	}
-
-	if err := house.InitMetricsHouse(); err != nil {
-		log.Fatalln("F! failed to init metricshouse:", err)
 	}
 }
 
@@ -111,16 +105,4 @@ func printEnv() {
 	log.Println("I! runner.hostname:", runner.Hostname)
 	log.Println("I! runner.fd_limits:", runner.FdLimits())
 	log.Println("I! runner.vm_limits:", runner.VMLimits())
-}
-
-func parseFilter(filterStr string) map[string]struct{} {
-	filters := strings.Split(filterStr, ":")
-	filtermap := make(map[string]struct{})
-	for i := 0; i < len(filters); i++ {
-		if strings.TrimSpace(filters[i]) == "" {
-			continue
-		}
-		filtermap[filters[i]] = struct{}{}
-	}
-	return filtermap
 }

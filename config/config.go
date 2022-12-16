@@ -58,39 +58,48 @@ type HTTP struct {
 	IdleTimeout  int    `toml:"idle_timeout"`
 }
 
+type IbexConfig struct {
+	Enable   bool
+	Interval Duration `toml:"interval"`
+	MetaDir  string   `toml:"metaDir"`
+	Servers  []string `toml:"servers"`
+}
+
 type ConfigType struct {
 	// from console args
-	ConfigDir string
-	DebugMode bool
-	TestMode  bool
+	ConfigDir    string
+	DebugMode    bool
+	TestMode     bool
+	InputFilters string
 
 	DisableUsageReport bool `toml:"disable_usage_report"`
 
 	// from config.toml
-	Global       Global         `toml:"global"`
-	WriterOpt    WriterOpt      `toml:"writer_opt"`
-	Writers      []WriterOption `toml:"writers"`
-	Logs         Logs           `toml:"logs"`
-	MetricsHouse MetricsHouse   `toml:"metricshouse"`
-	Traces       *traces.Config `toml:"traces"`
-	HTTP         *HTTP          `toml:"http"`
-	Prometheus   *Prometheus    `toml:"prometheus"`
+	Global     Global         `toml:"global"`
+	WriterOpt  WriterOpt      `toml:"writer_opt"`
+	Writers    []WriterOption `toml:"writers"`
+	Logs       Logs           `toml:"logs"`
+	Traces     *traces.Config `toml:"traces"`
+	HTTP       *HTTP          `toml:"http"`
+	Prometheus *Prometheus    `toml:"prometheus"`
+	Ibex       *IbexConfig    `toml:"ibex"`
 
 	HTTPProviderConfig *HTTPProviderConfig `toml:"http_provider"`
 }
 
 var Config *ConfigType
 
-func InitConfig(configDir string, debugMode, testMode bool, interval int64) error {
+func InitConfig(configDir string, debugMode, testMode bool, interval int64, inputFilters string) error {
 	configFile := path.Join(configDir, "config.toml")
 	if !file.IsExist(configFile) {
 		return fmt.Errorf("configuration file(%s) not found", configFile)
 	}
 
 	Config = &ConfigType{
-		ConfigDir: configDir,
-		DebugMode: debugMode,
-		TestMode:  testMode,
+		ConfigDir:    configDir,
+		DebugMode:    debugMode,
+		TestMode:     testMode,
+		InputFilters: inputFilters,
 	}
 
 	if err := cfg.LoadConfigByDir(configDir, Config); err != nil {
@@ -102,7 +111,11 @@ func InitConfig(configDir string, debugMode, testMode bool, interval int64) erro
 	}
 
 	if Config.WriterOpt.ChanSize <= 0 {
-		Config.WriterOpt.ChanSize = 10000
+		Config.WriterOpt.ChanSize = 1000000
+	}
+
+	if Config.WriterOpt.Batch <= 0 {
+		Config.WriterOpt.Batch = 1000
 	}
 
 	if err := Config.fillIP(); err != nil {

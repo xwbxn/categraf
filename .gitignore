@@ -8,4 +8,5 @@ docker/conf
 docker/categraf
 /build
 /nohup.out
-conf_test
+
+conf_local/
