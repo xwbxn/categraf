@@ -9,11 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"flashcat.cloud/categraf/config"
-	"flashcat.cloud/categraf/writer"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/prompb"
+
+	"flashcat.cloud/categraf/config"
+	"flashcat.cloud/categraf/writer"
 )
 
 type FalconMetric struct {
@@ -209,6 +210,6 @@ func openFalcon(c *gin.Context) {
 		log.Println("falcon forwarder error, message:", string(bytes))
 	}
 
-	writer.PostTimeSeries(series)
+	writer.WriteTimeSeries(series)
 	c.String(200, "succ:%d fail:%d message:%s", succ, fail, msg)
 }

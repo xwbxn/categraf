@@ -37,9 +37,11 @@ func (g *Gatherer) Gather(client *Client, slist *types.SampleList) error {
 	requests := makeReadRequests(g.metrics)
 	responses, err := client.read(requests)
 	if err != nil {
+		slist.PushSample("jolokia", "up", 0, tags)
 		return err
 	}
 
+	slist.PushSample("jolokia", "up", 1, tags)
 	g.gatherResponses(responses, tags, slist)
 	return nil
 }
@@ -66,7 +68,7 @@ func (g *Gatherer) gatherResponses(responses []ReadResponse, tags map[string]str
 
 	for measurement, points := range series {
 		for _, point := range compactPoints(points) {
-			slist.PushSamples(measurement, point.Fields, mergeTags(point.Tags, tags))
+			slist.PushSamples(measurement, point.Fields, point.Tags, tags)
 		}
 	}
 }
@@ -104,19 +106,6 @@ func (g *Gatherer) generatePoints(metric Metric, responses []ReadResponse) ([]po
 	}
 
 	return points, errors
-}
-
-// mergeTags combines two tag sets into a single tag set.
-func mergeTags(metricTags, outerTags map[string]string) map[string]string {
-	tags := make(map[string]string)
-	for k, v := range outerTags {
-		tags[k] = v
-	}
-	for k, v := range metricTags {
-		tags[k] = v
-	}
-
-	return tags
 }
 
 // metricMatchesResponse returns true when the name, attributes, and path

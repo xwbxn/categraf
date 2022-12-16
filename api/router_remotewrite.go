@@ -3,10 +3,11 @@ package api
 import (
 	"net/http"
 
-	"flashcat.cloud/categraf/config"
-	"flashcat.cloud/categraf/writer"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/prometheus/prompb"
+
+	"flashcat.cloud/categraf/config"
+	"flashcat.cloud/categraf/writer"
 )
 
 func remoteWrite(c *gin.Context) {
@@ -49,7 +50,7 @@ func remoteWrite(c *gin.Context) {
 		}
 	}
 
-	writer.PostTimeSeries(req.Timeseries)
+	writer.WriteTimeSeries(req.Timeseries)
 	c.String(200, "forwarding...")
 }
 

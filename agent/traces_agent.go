@@ -1,3 +1,5 @@
+//go:build !no_traces
+
 package agent
 
 import (
@@ -8,45 +10,33 @@ import (
 	"flashcat.cloud/categraf/traces"
 )
 
-func (a *Agent) startTracesAgent() (err error) {
-	if config.Config.Traces == nil || !config.Config.Traces.Enable {
-		return nil
-	}
-
-	defer func() {
-		if err != nil {
-			log.Println("E! failed to start tracing agent:", err)
-		}
-	}()
-
-	col, err := traces.New(config.Config.Traces)
-	if err != nil {
-		return err
-	}
-
-	err = col.Run(context.Background())
-	if err != nil {
-		return err
-	}
-
-	a.TraceCollector = col
-	return nil
+type TracesAgent struct {
+	TraceCollector *traces.Collector
 }
 
-func (a *Agent) stopTracesAgent() (err error) {
+func NewTracesAgent() AgentModule {
 	if config.Config.Traces == nil || !config.Config.Traces.Enable {
+		log.Println("I! traces agent disabled!")
 		return nil
 	}
-
-	if a.TraceCollector == nil {
+	col, err := traces.New(config.Config.Traces)
+	if err != nil {
+		log.Println("E! failed to create traces agent:", err)
 		return nil
 	}
+	if col == nil {
+		log.Println("E! failed to create traces agent, collector is nil")
+		return nil
+	}
+	return &TracesAgent{
+		TraceCollector: col,
+	}
+}
 
-	defer func() {
-		if err != nil {
-			log.Println("E! failed to stop tracing agent:", err)
-		}
-	}()
+func (ta *TracesAgent) Start() (err error) {
+	return ta.TraceCollector.Run(context.Background())
+}
 
-	return a.TraceCollector.Shutdown(context.Background())
+func (ta *TracesAgent) Stop() (err error) {
+	return ta.TraceCollector.Shutdown(context.Background())
 }

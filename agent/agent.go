@@ -1,11 +1,8 @@
 package agent
 
 import (
+	"errors"
 	"log"
-
-	"flashcat.cloud/categraf/config"
-	"flashcat.cloud/categraf/inputs"
-	"flashcat.cloud/categraf/traces"
 
 	// auto registry
 	_ "flashcat.cloud/categraf/inputs/arms"
@@ -67,51 +64,62 @@ import (
 )
 
 type Agent struct {
-	InputFilters   map[string]struct{}
-	InputReaders   map[string]*InputReader
-	TraceCollector *traces.Collector
-	InputProvider  inputs.Provider
+	agents []AgentModule
 }
 
-func NewAgent(filters map[string]struct{}) (*Agent, error) {
+// AgentModule is the interface for agent modules
+// Use NewXXXAgent() to create a new agent module
+// if the agent module is not needed, return nil
+type AgentModule interface {
+	Start() error
+	Stop() error
+}
+
+func NewAgent() (*Agent, error) {
 	agent := &Agent{
-		InputFilters: filters,
-		InputReaders: make(map[string]*InputReader),
+		agents: []AgentModule{
+			NewMetricsAgent(),
+			NewTracesAgent(),
+			NewLogsAgent(),
+			NewPrometheusAgent(),
+			NewIbexAgent(),
+		},
 	}
-
-	provider, err := inputs.NewProvider(config.Config, agent.Reload)
-	if err != nil {
-		return nil, err
+	for _, ag := range agent.agents {
+		if ag != nil {
+			return agent, nil
+		}
 	}
-	agent.InputProvider = provider
-
-	return agent, nil
+	return nil, errors.New("no valid running agents, please check configuration")
 }
 
 func (a *Agent) Start() {
 	log.Println("I! agent starting")
-	a.startLogAgent()
-	err := a.startMetricsAgent()
-	if err != nil {
-		log.Println(err)
+	for _, agent := range a.agents {
+		if agent == nil {
+			continue
+		}
+		if err := agent.Start(); err != nil {
+			log.Printf("E! start [%T] err: [%+v]", agent, err)
+		} else {
+			log.Printf("I! [%T] started", agent)
+		}
 	}
-	err = a.startTracesAgent()
-	if err != nil {
-		log.Println(err)
-	}
-	a.startPrometheusScrape()
 	log.Println("I! agent started")
 }
 
 func (a *Agent) Stop() {
 	log.Println("I! agent stopping")
-	a.stopLogAgent()
-	a.stopMetricsAgent()
-	err := a.stopTracesAgent()
-	if err != nil {
-		log.Println(err)
+	for _, agent := range a.agents {
+		if agent == nil {
+			continue
+		}
+		if err := agent.Stop(); err != nil {
+			log.Printf("E! stop [%T] err: [%+v]", agent, err)
+		} else {
+			log.Printf("I! [%T] stopped", agent)
+		}
 	}
-	a.stopPrometheusScrape()
 	log.Println("I! agent stopped")
 }
 

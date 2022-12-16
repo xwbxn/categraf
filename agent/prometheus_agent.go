@@ -1,3 +1,5 @@
+//go:build !no_prometheus
+
 package agent
 
 import (
@@ -7,23 +9,27 @@ import (
 	"flashcat.cloud/categraf/prometheus"
 )
 
-func (a *Agent) startPrometheusScrape() {
+type PrometheusAgent struct {
+}
+
+func NewPrometheusAgent() AgentModule {
 	if coreconfig.Config == nil ||
 		coreconfig.Config.Prometheus == nil ||
 		!coreconfig.Config.Prometheus.Enable {
 		log.Println("I! prometheus scraping disabled!")
-		return
+		return nil
 	}
-	go prometheus.Start()
-	log.Println("I! prometheus scraping started!")
+	return &PrometheusAgent{}
 }
 
-func (a *Agent) stopPrometheusScrape() {
-	if coreconfig.Config == nil ||
-		coreconfig.Config.Prometheus == nil ||
-		!coreconfig.Config.Prometheus.Enable {
-		return
-	}
+func (pa *PrometheusAgent) Start() error {
+	go prometheus.Start()
+	log.Println("I! prometheus scraping started!")
+	return nil
+}
+
+func (pa *PrometheusAgent) Stop() error {
 	prometheus.Stop()
 	log.Println("I! prometheus scraping stopped!")
+	return nil
 }
