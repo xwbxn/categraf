@@ -9,10 +9,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/shirou/gopsutil/v3/process"
+
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
-	"github.com/shirou/gopsutil/v3/process"
 )
 
 const inputName = "procstat"
@@ -235,9 +236,11 @@ func (ins *Instance) gatherIO(slist *types.SampleList, procs map[PID]Process, ta
 func (ins *Instance) gatherUptime(slist *types.SampleList, procs map[PID]Process, tags map[string]string) {
 	// use the smallest one
 	var value int64 = -1
+	now := time.Now().Unix()
 	for pid := range procs {
-		v, err := procs[pid].CreateTime() // returns epoch in ms
+		createTime, err := procs[pid].CreateTime() // returns epoch in ms
 		if err == nil {
+			v := now - createTime/1000
 			if ins.GatherPerPid {
 				slist.PushFront(types.NewSample(inputName, "uptime", v, map[string]string{"pid": fmt.Sprint(pid)}, tags))
 			}
@@ -263,10 +266,10 @@ func (ins *Instance) gatherCPU(slist *types.SampleList, procs map[PID]Process, t
 		v, err := procs[pid].Percent(time.Duration(0))
 		if err == nil {
 			if solarisMode {
-				value += v / float64(runtime.NumCPU())
-				slist.PushFront(types.NewSample(inputName, "cpu_usage", v/float64(runtime.NumCPU()), map[string]string{"pid": fmt.Sprint(pid)}, tags))
-			} else {
-				value += v
+				v /= float64(runtime.NumCPU())
+			}
+			value += v
+			if ins.GatherPerPid {
 				slist.PushFront(types.NewSample(inputName, "cpu_usage", v, map[string]string{"pid": fmt.Sprint(pid)}, tags))
 			}
 		}
