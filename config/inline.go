@@ -142,6 +142,11 @@ func (ic *InternalConfig) Process(slist *types.SampleList) *types.SampleList {
 			}
 		}
 
+		// add ip_address
+		if Config.Global.IP != "" {
+			ss[i].Labels["agent_ip"] = Config.Global.IP
+		}
+
 		nlst.PushFront(ss[i])
 	}
 
