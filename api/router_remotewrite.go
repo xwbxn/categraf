@@ -48,6 +48,10 @@ func remoteWrite(c *gin.Context) {
 		if _, has := tags[agentHostnameLabelKey]; !has && !ignoreHostname {
 			req.Timeseries[i].Labels = append(req.Timeseries[i].Labels, prompb.Label{Name: agentHostnameLabelKey, Value: config.Config.GetHostname()})
 		}
+		// add label: ipaddr
+		if config.Config.Global.IP != "" {
+			req.Timeseries[i].Labels = append(req.Timeseries[i].Labels, prompb.Label{Name: "ipaddr", Value: config.Config.Global.IP})
+		}
 	}
 
 	writer.WriteTimeSeries(req.Timeseries)
