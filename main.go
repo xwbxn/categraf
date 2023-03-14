@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -14,6 +15,7 @@ import (
 	"flashcat.cloud/categraf/agent"
 	"flashcat.cloud/categraf/api"
 	"flashcat.cloud/categraf/config"
+	"flashcat.cloud/categraf/heartbeat"
 	"flashcat.cloud/categraf/pkg/osx"
 	"flashcat.cloud/categraf/writer"
 	"github.com/chai2010/winsvc"
@@ -80,7 +82,7 @@ func main() {
 	initWriters()
 
 	go api.Start()
-	go agent.Report()
+	go heartbeat.Work()
 
 	ag, err := agent.NewAgent()
 	if err != nil {
@@ -97,7 +99,9 @@ func initWriters() {
 }
 
 func handleSignal(ag *agent.Agent) {
+
 	sc := make(chan os.Signal, 1)
+	// syscall.SIGUSR2 == 0xc , not available on windows
 	signal.Notify(sc, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGPIPE)
 
 EXIT:
@@ -112,8 +116,6 @@ EXIT:
 		case syscall.SIGPIPE:
 			// https://pkg.go.dev/os/signal#hdr-SIGPIPE
 			// do nothing
-		default:
-			break EXIT
 		}
 	}
 
