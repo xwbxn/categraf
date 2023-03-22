@@ -92,16 +92,19 @@ func work(version string, ps *system.SystemPS, client *http.Client) {
 	cpuUsagePercent := cpuUsage(ps)
 	hostname := config.Config.GetHostname()
 	memUsagePercent := memUsage(ps)
+	ipAddress, _ := config.GetOutboundIP()
 
 	data := map[string]interface{}{
 		"agent_version": version,
 		"os":            runtime.GOOS,
 		"arch":          runtime.GOARCH,
 		"hostname":      hostname,
+		"ip_address":    ipAddress,
 		"cpu_num":       runtime.NumCPU(),
 		"cpu_util":      cpuUsagePercent,
 		"mem_util":      memUsagePercent,
 		"unixtime":      time.Now().UnixMilli(),
+		"busigroup":     config.Config.Global.Labels["busigroup"],
 	}
 
 	bs, err := json.Marshal(data)
