@@ -61,6 +61,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/redis"
 	_ "flashcat.cloud/categraf/inputs/redis_sentinel"
 	_ "flashcat.cloud/categraf/inputs/rocketmq_offset"
+	_ "flashcat.cloud/categraf/inputs/self_metrics"
 	_ "flashcat.cloud/categraf/inputs/sentinel"
 	_ "flashcat.cloud/categraf/inputs/snmp"
 	_ "flashcat.cloud/categraf/inputs/sockstat"
@@ -199,7 +200,9 @@ func (ma *MetricsAgent) RegisterInput(name string, configs []cfg.ConfigWithForma
 		}
 
 		if empty {
-			// log.Printf("W! no instances for input:%s", inputKey)
+			if config.Config.DebugMode {
+				log.Printf("W! no instances for input:%s", inputKey)
+			}
 			return
 		}
 	}
