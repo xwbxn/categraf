@@ -373,6 +373,7 @@ func (hrp *HTTPProvider) doReq() (*httpProviderResponse, error) {
 
 	q.Add("timestamp", fmt.Sprint(time.Now().Unix()))
 	q.Add("version", hrp.version)
+	q.Add("agent_hostname", config.Config.GetHostname())
 	req.URL.RawQuery = q.Encode()
 
 	resp, err := hrp.client.Do(req)
