@@ -369,7 +369,6 @@ func (hrp *HTTPProvider) doReq() (*httpProviderResponse, error) {
 	for k, v := range config.Config.Global.Labels {
 		q.Add(k, v)
 	}
-	q.Add("ident", config.Config.GetHostname())
 
 	q.Add("timestamp", fmt.Sprint(time.Now().Unix()))
 	q.Add("version", hrp.version)
