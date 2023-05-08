@@ -8,18 +8,26 @@ import (
 
 const inputName = "cola"
 
-type PluginTpl struct {
+type Cola struct {
 	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
 }
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &PluginTpl{}
+		return &Cola{}
 	})
 }
 
-func (pt *PluginTpl) GetInstances() []inputs.Instance {
+func (c *Cola) Clone() inputs.Input {
+	return &Cola{}
+}
+
+func (c *Cola) Name() string {
+	return inputName
+}
+
+func (pt *Cola) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(pt.Instances))
 	for i := 0; i < len(pt.Instances); i++ {
 		ret[i] = pt.Instances[i]

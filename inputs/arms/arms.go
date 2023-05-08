@@ -41,6 +41,14 @@ func (r *Arms) Init() error {
 	return nil
 }
 
+func (r *Arms) Clone() inputs.Input {
+	return &Arms{}
+}
+
+func (r *Arms) Name() string {
+	return inputName
+}
+
 func (r *Arms) Drop() {}
 
 func (r *Arms) Gather(slist *types.SampleList) {}

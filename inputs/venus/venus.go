@@ -39,6 +39,14 @@ func (r *VenusADC) Init() error {
 	return nil
 }
 
+func (r *VenusADC) Name() string {
+	return inputName
+}
+
+func (r *VenusADC) Clone() inputs.Input {
+	return &VenusADC{}
+}
+
 func (r *VenusADC) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(r.Instances))
 	for i := 0; i < len(r.Instances); i++ {

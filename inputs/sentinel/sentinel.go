@@ -50,6 +50,14 @@ func init() {
 	})
 }
 
+func (pt *Sentinel) Name() string {
+	return inputName
+}
+
+func (pt *Sentinel) Clone() inputs.Input {
+	return &Sentinel{}
+}
+
 func (pt *Sentinel) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(pt.Instances))
 	for i := 0; i < len(pt.Instances); i++ {
