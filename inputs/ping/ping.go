@@ -12,7 +12,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
-	"github.com/go-ping/ping"
+	ping "github.com/prometheus-community/pro-bing"
 )
 
 const (
@@ -46,8 +46,8 @@ func (ins *Instance) Init() error {
 		ins.Count = 1
 	}
 
-	if ins.Conc < 10 {
-		ins.Conc = 50
+	if ins.Conc == 0 {
+		ins.Conc = 10
 	}
 
 	if ins.PingInterval < 0.2 {
@@ -59,7 +59,7 @@ func (ins *Instance) Init() error {
 	if ins.Timeout == 0 {
 		ins.calcTimeout = time.Duration(3) * time.Second
 	} else {
-		ins.calcTimeout = time.Duration(ins.Timeout) * time.Second
+		ins.calcTimeout = time.Duration(ins.Timeout * float64(time.Second))
 	}
 
 	if ins.Interface != "" {
@@ -92,6 +92,14 @@ func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &Ping{}
 	})
+}
+
+func (p *Ping) Clone() inputs.Input {
+	return &Ping{}
+}
+
+func (p *Ping) Name() string {
+	return inputName
 }
 
 func (p *Ping) GetInstances() []inputs.Instance {
@@ -215,7 +223,7 @@ func (ins *Instance) ping(destination string) (*pingStats, error) {
 	once := &sync.Once{}
 	pinger.OnRecv = func(pkt *ping.Packet) {
 		once.Do(func() {
-			ps.ttl = pkt.Ttl
+			ps.ttl = pkt.TTL
 		})
 	}
 
