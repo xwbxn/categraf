@@ -59,6 +59,14 @@ func init() {
 	})
 }
 
+func (o *Oracle) Clone() inputs.Input {
+	return &Oracle{}
+}
+
+func (o *Oracle) Name() string {
+	return inputName
+}
+
 func (o *Oracle) Drop() {
 	for i := 0; i < len(o.Instances); i++ {
 		o.Instances[i].Drop()
@@ -86,13 +94,28 @@ func (ins *Instance) Init() error {
 		return fmt.Errorf("failed to open oracle connection: %v", err)
 	}
 
+	if ins.MaxOpenConnections == 0 {
+		ins.MaxOpenConnections = 2
+	}
+
 	ins.client.SetMaxOpenConns(ins.MaxOpenConnections)
+	ins.client.SetMaxIdleConns(ins.MaxOpenConnections)
+	ins.client.SetConnMaxIdleTime(time.Duration(0))
+	ins.client.SetConnMaxLifetime(time.Duration(0))
+
 	return nil
 }
 
 func (ins *Instance) Drop() error {
 	if config.Config.DebugMode {
 		log.Println("D! dropping oracle connection:", ins.Address)
+	}
+
+	if len(ins.Address) == 0 || ins.client == nil {
+		if config.Config.DebugMode {
+			log.Println("D! oracle address is empty or client is nil, so there is no need to close")
+		}
+		return nil
 	}
 
 	if err := ins.client.Close(); err != nil {
@@ -103,6 +126,12 @@ func (ins *Instance) Drop() error {
 }
 
 func (ins *Instance) Gather(slist *types.SampleList) {
+	if len(ins.Address) == 0 {
+		if config.Config.DebugMode {
+			log.Println("D! oracle address is empty")
+		}
+		return
+	}
 	tags := map[string]string{"address": ins.Address}
 
 	defer func(begun time.Time) {
@@ -113,6 +142,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	if err := ins.client.Ping(); err != nil {
 		slist.PushFront(types.NewSample(inputName, "up", 0, tags))
 		log.Println("E! failed to ping oracle:", ins.Address, "error:", err)
+		return
 	} else {
 		slist.PushFront(types.NewSample(inputName, "up", 1, tags))
 	}

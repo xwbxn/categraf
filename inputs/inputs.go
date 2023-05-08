@@ -47,12 +47,20 @@ func MayGetInstances(t interface{}) []Instance {
 	return nil
 }
 
-type Input interface {
-	GetLabels() map[string]string
-	GetInterval() config.Duration
-	InitInternalConfig() error
-	Process(*types.SampleList) *types.SampleList
-}
+type (
+	Cloneable interface {
+		Clone() Input
+	}
+
+	Input interface {
+		Cloneable
+		Name() string
+		GetLabels() map[string]string
+		GetInterval() config.Duration
+		InitInternalConfig() error
+		Process(*types.SampleList) *types.SampleList
+	}
+)
 
 type Creator func() Input
 
@@ -63,6 +71,9 @@ func Add(name string, creator Creator) {
 }
 
 type Instance interface {
+	Initialized() bool
+	SetInitialized()
+
 	GetLabels() map[string]string
 	GetIntervalTimes() int64
 	InitInternalConfig() error

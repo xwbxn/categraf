@@ -97,8 +97,6 @@ type ConfigType struct {
 	TestMode     bool
 	InputFilters string
 
-	DisableUsageReport bool `toml:"disable_usage_report"`
-
 	// from config.toml
 	Global     Global           `toml:"global"`
 	WriterOpt  WriterOpt        `toml:"writer_opt"`
@@ -135,6 +133,10 @@ func InitConfig(configDir string, debugMode, testMode bool, interval int64, inpu
 
 	if interval > 0 {
 		Config.Global.Interval = Duration(time.Duration(interval) * time.Second)
+	}
+
+	if Config.Global.Precision == "" {
+		Config.Global.Precision = "ms"
 	}
 
 	if Config.WriterOpt.ChanSize <= 0 {

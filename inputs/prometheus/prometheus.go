@@ -135,6 +135,14 @@ func init() {
 	})
 }
 
+func (p *Prometheus) Clone() inputs.Input {
+	return &Prometheus{}
+}
+
+func (p *Prometheus) Name() string {
+	return inputName
+}
+
 func (p *Prometheus) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(p.Instances))
 	for i := 0; i < len(p.Instances); i++ {
@@ -220,7 +228,7 @@ func (ins *Instance) gatherUrl(urlwg *sync.WaitGroup, slist *types.SampleList, u
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		slist.PushFront(types.NewSample("", "up", 0, labels))
-		log.Println("E! failed to read response body, error:", err)
+		log.Println("E! failed to read response body, url:", u.String(), "error:", err)
 		return
 	}
 

@@ -11,6 +11,8 @@ import (
 	"flashcat.cloud/categraf/types"
 )
 
+const inputName = "disk"
+
 type DiskStats struct {
 	ps system.PS
 
@@ -21,12 +23,21 @@ type DiskStats struct {
 }
 
 func init() {
-	ps := system.NewSystemPS()
-	inputs.Add("disk", func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		return &DiskStats{
-			ps: ps,
+			ps: system.NewSystemPS(),
 		}
 	})
+}
+
+func (s *DiskStats) Clone() inputs.Input {
+	return &DiskStats{
+		ps: system.NewSystemPS(),
+	}
+}
+
+func (s *DiskStats) Name() string {
+	return inputName
 }
 
 func (s *DiskStats) Gather(slist *types.SampleList) {
@@ -37,6 +48,18 @@ func (s *DiskStats) Gather(slist *types.SampleList) {
 	}
 
 	for i, du := range disks {
+		if du.DeviceError == 1 {
+			tags := map[string]string{
+				"path":   du.Path,
+				"device": strings.Replace(partitions[i].Device, "/dev/", "", -1),
+				"fstype": du.Fstype,
+			}
+			fields := map[string]interface{}{
+				"device_error": du.DeviceError,
+			}
+			slist.PushSamples("disk", fields, tags)
+			continue
+		}
 		if du.Total == 0 {
 			// Skip dummy filesystem (procfs, cgroupfs, ...)
 			continue
@@ -69,6 +92,7 @@ func (s *DiskStats) Gather(slist *types.SampleList) {
 			"inodes_total": du.InodesTotal,
 			"inodes_free":  du.InodesFree,
 			"inodes_used":  du.InodesUsed,
+			"device_error": du.DeviceError,
 		}
 
 		slist.PushSamples("disk", fields, tags)

@@ -95,6 +95,14 @@ func init() {
 	})
 }
 
+func (a *Aliyun) Clone() inputs.Input {
+	return &Aliyun{}
+}
+
+func (a *Aliyun) Name() string {
+	return inputName
+}
+
 var _ inputs.SampleGatherer = new(Instance)
 var _ inputs.Input = new(Aliyun)
 var _ inputs.InstancesGetter = new(Aliyun)
@@ -321,13 +329,13 @@ func (ins *Instance) makeLabels(point internalTypes.Point, labels ...map[string]
 			result[k] = v
 		}
 	}
-	addLebel := func(instance interface{}) {
+	addLabel := func(instance interface{}) {
 		if meta, ok := instance.(*cms20190101.DescribeMonitoringAgentHostsResponseBodyHostsHost); ok {
 			result["ident"] = manager.SnakeCase(*meta.HostName)
 		}
 	}
 	if instance, ok := ins.metaCache.Get(ins.client.EcsKey(point.InstanceID)); ok {
-		addLebel(instance)
+		addLabel(instance)
 	}
 
 	result["user_id"] = point.UserID
