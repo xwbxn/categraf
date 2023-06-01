@@ -16,6 +16,7 @@ import (
 	internalTypes "flashcat.cloud/categraf/inputs/aliyun/internal/types"
 	"flashcat.cloud/categraf/pkg/cache"
 	"flashcat.cloud/categraf/pkg/limiter"
+	"flashcat.cloud/categraf/pkg/stringx"
 	"flashcat.cloud/categraf/types"
 )
 
@@ -63,6 +64,8 @@ type (
 
 		metricCache *metricCache      `toml:"-"`
 		metaCache   *cache.BasicCache `toml:"-"`
+
+		EcsAgentHostTag string `toml:"ecs_host_tag"`
 	}
 
 	Credential struct {
@@ -129,6 +132,9 @@ func (ins *Instance) Init() error {
 	}
 	if len(ins.Namespaces) == 0 {
 		ins.Namespaces = append(ins.Namespaces, "")
+	}
+	if len(ins.EcsAgentHostTag) == 0 {
+		ins.EcsAgentHostTag = "agent_hostname"
 	}
 	ins.metaCache = cache.NewBasicCache()
 
@@ -312,7 +318,7 @@ func (ins *Instance) sendMetrics(metric internalTypes.Metric, wg *sync.WaitGroup
 	for _, point := range points {
 		if point.Value != nil {
 			tags := ins.makeLabels(point)
-			mName := fmt.Sprintf("%s_%s", manager.SnakeCase(point.Namespace), manager.SnakeCase(point.MetricName))
+			mName := fmt.Sprintf("%s_%s", stringx.SnakeCase(point.Namespace), stringx.SnakeCase(point.MetricName))
 			slist.PushFront(types.NewSample(inputName, mName, *point.Value, tags, map[string]string{"namespace": metric.Namespace, "metric_name": metric.MetricName}).SetTime(point.GetMetricTime()))
 		}
 	}
@@ -331,7 +337,7 @@ func (ins *Instance) makeLabels(point internalTypes.Point, labels ...map[string]
 	}
 	addLabel := func(instance interface{}) {
 		if meta, ok := instance.(*cms20190101.DescribeMonitoringAgentHostsResponseBodyHostsHost); ok {
-			result["ident"] = manager.SnakeCase(*meta.HostName)
+			result[ins.EcsAgentHostTag] = stringx.SnakeCase(*meta.HostName)
 		}
 	}
 	if instance, ok := ins.metaCache.Get(ins.client.EcsKey(point.InstanceID)); ok {

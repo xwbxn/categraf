@@ -1,4 +1,4 @@
-package cadvisor
+package ipmi
 
 import (
 	"flashcat.cloud/categraf/config"
@@ -6,29 +6,29 @@ import (
 )
 
 const (
-	inputName = "cadvisor"
+	inputName = "ipmi"
 )
 
-type Cadvisor struct {
+type Ipmi struct {
 	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
 }
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Cadvisor{}
+		return &Ipmi{}
 	})
 }
 
-func (c *Cadvisor) Clone() inputs.Input {
-	return &Cadvisor{}
+func (i *Ipmi) Clone() inputs.Input {
+	return &Ipmi{}
 }
 
-func (c *Cadvisor) Name() string {
+func (c *Ipmi) Name() string {
 	return inputName
 }
 
-func (c *Cadvisor) GetInstances() []inputs.Instance {
+func (c *Ipmi) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(c.Instances))
 	for i := 0; i < len(c.Instances); i++ {
 		ret[i] = c.Instances[i]
@@ -36,7 +36,7 @@ func (c *Cadvisor) GetInstances() []inputs.Instance {
 	return ret
 }
 
-func (c *Cadvisor) Drop() {
+func (c *Ipmi) Drop() {
 	for i := 0; i < len(c.Instances); i++ {
 		c.Instances[i].Drop()
 	}
