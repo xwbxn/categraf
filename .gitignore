@@ -11,3 +11,4 @@ docker/categraf
 /nohup.out
 
 conf_local/
+release

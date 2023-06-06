@@ -56,3 +56,11 @@ pack:build-linux build-windows
 	rm -rf $(APP)-$(TAG).zip
 	tar -zcvf $(APP)-$(TAG)-linux-amd64.tar.gz conf $(APP)
 	zip -r $(APP)-$(TAG)-windows-amd64.zip conf $(APP).exe
+
+release: build-linux
+	rm -rf release/
+	mkdir -p release/conf release/conf.example
+	cp -rf conf.default/* release/conf
+	cp -rf conf/* release/conf.example
+	cp $(APP) release
+	tar -zcvf release/$(APP)-$(TAG)-linux-amd64.tar.gz -C release conf conf.example $(APP) 
