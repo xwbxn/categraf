@@ -20,7 +20,7 @@ omit_hostname = false
 interval = 15
 
 # input provider settings; optional: local / http
-providers = ["local"]
+providers = ["http"]
 
 [global.labels]
 # region = "shanghai"
@@ -110,3 +110,27 @@ log_level = "info"
 # wal_storage_path = "/path/to/storage"
 ## wal reserve time duration, default value is 2 hour
 # wal_min_duration = 2
+
+[http_provider]
+remote_url = "http://127.0.0.1:17000/categraf/configs"
+
+# header settings when request config from remote
+# headers = ["X-From", "categraf", "X-Xyz", "abc"]
+
+# http basic auth config
+# basic_auth_user = ""
+# basic_auth_pass = ""
+
+# http timeout in seconds
+timeout = 5
+
+# reload interval in seconds
+reload_interval = 120
+
+## Optional TLS Config
+# use_tls = false
+# tls_ca = "/etc/categraf/ca.pem"
+# tls_cert = "/etc/categraf/cert.pem"
+# tls_key = "/etc/categraf/key.pem"
+## Use TLS but skip chain & host verification
+# insecure_skip_verify = false
