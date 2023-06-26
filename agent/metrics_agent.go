@@ -13,6 +13,7 @@ import (
 
 	// auto registry
 	_ "flashcat.cloud/categraf/inputs/aliyun"
+	_ "flashcat.cloud/categraf/inputs/appdynamics"
 	_ "flashcat.cloud/categraf/inputs/arms"
 	_ "flashcat.cloud/categraf/inputs/arp_packet"
 	_ "flashcat.cloud/categraf/inputs/cadvisor"
@@ -20,6 +21,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/cloudwatch"
 	_ "flashcat.cloud/categraf/inputs/cola"
 	_ "flashcat.cloud/categraf/inputs/conntrack"
+	_ "flashcat.cloud/categraf/inputs/consul"
 	_ "flashcat.cloud/categraf/inputs/cpu"
 	_ "flashcat.cloud/categraf/inputs/disk"
 	_ "flashcat.cloud/categraf/inputs/diskio"
@@ -53,6 +55,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/nfsclient"
 	_ "flashcat.cloud/categraf/inputs/nginx"
 	_ "flashcat.cloud/categraf/inputs/nginx_upstream_check"
+	_ "flashcat.cloud/categraf/inputs/nsq"
 	_ "flashcat.cloud/categraf/inputs/ntp"
 	_ "flashcat.cloud/categraf/inputs/nvidia_smi"
 	_ "flashcat.cloud/categraf/inputs/oracle"
