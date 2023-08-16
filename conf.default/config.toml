@@ -28,7 +28,7 @@ providers = ["http"]
 
 [log]
 # file_name is the file to write logs to
-file_name = "stdout"
+file_name = "categraf.log"
 
 # options below will not be work when file_name is stdout or stderr
 # max_size is the maximum size in megabytes of the log file before it gets rotated. It defaults to 100 megabytes.
