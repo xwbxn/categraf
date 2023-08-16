@@ -178,10 +178,6 @@ func InitConfig(configDir string, debugMode, testMode bool, interval int64, inpu
 }
 
 func (c *ConfigType) fillIP() error {
-	// if !strings.Contains(c.Global.Hostname, "$ip") {
-	// 	return nil
-	// }
-
 	ip, err := GetOutboundIP()
 	if err != nil {
 		return err
@@ -230,4 +226,19 @@ func GetOutboundIP() (net.IP, error) {
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
 
 	return localAddr.IP, nil
+}
+
+func GlobalLabels() map[string]string {
+	ret := make(map[string]string)
+	for k, v := range Config.Global.Labels {
+		ret[k] = Expand(v)
+	}
+	return ret
+}
+
+func Expand(nv string) string {
+	nv = strings.Replace(nv, "$hostname", Config.GetHostname(), -1)
+	nv = strings.Replace(nv, "$ip", Config.Global.IP, -1)
+	nv = os.Expand(nv, GetEnv)
+	return nv
 }

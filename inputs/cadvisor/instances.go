@@ -62,7 +62,7 @@ type (
 		tls.ClientConfig
 		client *http.Client
 
-		*cache.BasicCache
+		*cache.BasicCache[string]
 		stop chan struct{}
 	}
 )
@@ -80,9 +80,7 @@ func (ins *Instance) Init() error {
 		return types.ErrInstancesEmpty
 	}
 
-	ins.URL = strings.Replace(ins.URL, "$hostname", config.Config.GetHostname(), -1)
-	ins.URL = strings.Replace(ins.URL, "$ip", config.Config.Global.IP, -1)
-	ins.URL = os.Expand(ins.URL, config.GetEnv)
+	ins.URL = config.Expand(ins.URL)
 	u, err := url.Parse(ins.URL)
 	if err != nil {
 		return fmt.Errorf("failed to parse scrape url: %s, error: %s", ins.URL, err)
@@ -94,7 +92,7 @@ func (ins *Instance) Init() error {
 	}
 
 	ins.stop = make(chan struct{})
-	ins.BasicCache = cache.NewBasicCache()
+	ins.BasicCache = cache.NewBasicCache[string]()
 	go ins.cache()
 
 	if ins.Timeout <= 0 {
