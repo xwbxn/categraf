@@ -9,7 +9,9 @@ import (
 	"os/signal"
 	"path/filepath"
 	"syscall"
+	"time"
 
+	"github.com/jpillora/overseer"
 	"gopkg.in/natefinch/lumberjack.v2"
 
 	"flashcat.cloud/categraf/agent"
@@ -17,6 +19,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/heartbeat"
 	"flashcat.cloud/categraf/pkg/osx"
+	"flashcat.cloud/categraf/upgrade"
 	"flashcat.cloud/categraf/writer"
 	"github.com/chai2010/winsvc"
 	"github.com/toolkits/pkg/runner"
@@ -63,17 +66,47 @@ func initLog(output string) {
 	}
 }
 
+// create another main() to run the overseer process
+// and then convert your old main() into a 'prog(state)'
 func main() {
 	flag.Parse()
+	// init configs
+	if err := config.InitConfig(*configDir, *debugMode, *testMode, *interval, *inputFilters); err != nil {
+		log.Fatalln("F! failed to init config:", err)
+	}
+
+	if config.Config.Upgrade.Enable {
+		url := fmt.Sprintf("%s?id=%s&version=%s", config.Config.Upgrade.Url, config.Hostname.Get(), config.Version)
+		overseer.Run(overseer.Config{
+			Program: startLauncher,
+			Fetcher: &upgrade.HTTP{
+				URL:           url,
+				Interval:      time.Duration(config.Config.Upgrade.Interval) * time.Second,
+				BasicAuthUser: config.Config.Upgrade.BasicAuthUser,
+				BasicAuthPass: config.Config.Upgrade.BasicAuthPass,
+			},
+			PreUpgrade: checkUpgradable,
+			Debug:      *debugMode,
+		})
+	} else {
+		program()
+	}
+
+}
+
+func checkUpgradable(tempBinaryPath string) error {
+	return nil
+}
+
+func startLauncher(state overseer.State) {
+	program()
+}
+
+func program() {
 
 	if *showVersion {
 		fmt.Println(config.Version)
 		os.Exit(0)
-	}
-
-	// init configs
-	if err := config.InitConfig(*configDir, *debugMode, *testMode, *interval, *inputFilters); err != nil {
-		log.Fatalln("F! failed to init config:", err)
 	}
 
 	doOSsvc()

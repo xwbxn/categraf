@@ -110,6 +110,7 @@ type ConfigType struct {
 	Log        Log              `toml:"log"`
 
 	HTTPProviderConfig *HTTPProviderConfig `toml:"http_provider"`
+	Upgrade            *UpgradeConfig      `toml:"upgrade"`
 }
 
 var Config *ConfigType
