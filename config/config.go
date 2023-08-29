@@ -12,6 +12,7 @@ import (
 	"flashcat.cloud/categraf/pkg/cfg"
 	"flashcat.cloud/categraf/pkg/tls"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/scaleway/scaleway-sdk-go/logger"
 	"github.com/toolkits/pkg/file"
 )
 
@@ -173,6 +174,13 @@ func InitConfig(configDir string, debugMode, testMode bool, interval int64, inpu
 	// If using test mode, the logs are output to standard output for easy viewing
 	if testMode {
 		Config.Log.FileName = "stdout"
+	}
+
+	if Config.Upgrade == nil {
+		Config.Upgrade = &UpgradeConfig{
+			Enable: false,
+		}
+		logger.Warningf("no upgrade configration")
 	}
 
 	return nil

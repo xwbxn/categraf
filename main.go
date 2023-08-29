@@ -8,10 +8,11 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"syscall"
 	"time"
 
-	"github.com/jpillora/overseer"
+	"github.com/xwbxn/overseer"
 	"gopkg.in/natefinch/lumberjack.v2"
 
 	"flashcat.cloud/categraf/agent"
@@ -76,7 +77,7 @@ func main() {
 	}
 
 	if config.Config.Upgrade.Enable {
-		url := fmt.Sprintf("%s?id=%s&version=%s", config.Config.Upgrade.Url, config.Hostname.Get(), config.Version)
+		url := fmt.Sprintf("%s?id=%s&version=%s&os=%s&arch=%s", config.Config.Upgrade.Url, config.Hostname.Get(), config.Version, runtime.GOOS, runtime.GOARCH)
 		overseer.Run(overseer.Config{
 			Program: startLauncher,
 			Fetcher: &upgrade.HTTP{

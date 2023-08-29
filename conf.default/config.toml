@@ -139,5 +139,5 @@ reload_interval = 120
 enable = true
 url = "http://127.0.0.1:17000/categraf/upgrade"
 interval = 2
-basic_auth_user = "aa"
-basic_auth_pass = "bb"
+# basic_auth_user = "aa"
+# basic_auth_pass = "bb"
