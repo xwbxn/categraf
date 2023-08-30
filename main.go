@@ -71,6 +71,11 @@ func initLog(output string) {
 // and then convert your old main() into a 'prog(state)'
 func main() {
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Println(config.Version)
+		os.Exit(0)
+	}
 	// init configs
 	if err := config.InitConfig(*configDir, *debugMode, *testMode, *interval, *inputFilters); err != nil {
 		log.Fatalln("F! failed to init config:", err)
@@ -104,11 +109,6 @@ func startLauncher(state overseer.State) {
 }
 
 func program() {
-
-	if *showVersion {
-		fmt.Println(config.Version)
-		os.Exit(0)
-	}
 
 	doOSsvc()
 	printEnv()
