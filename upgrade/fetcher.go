@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -102,8 +101,8 @@ func (h *HTTP) Fetch() (io.Reader, error) {
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("GET request failed (status code %d)", resp.StatusCode)
 	}
-	//extract gz files
-	if strings.HasSuffix(h.URL, ".gz") && resp.Header.Get("Content-Encoding") != "gzip" {
+
+	if resp.Header.Get("Content-Type") == "application/gzip" {
 		return gzip.NewReader(resp.Body)
 	}
 	//success!

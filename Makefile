@@ -71,4 +71,6 @@ release: build-linux build-windows
 
 version: build-linux build-windows
 	mv $(APP) $(APP)-$(TAG)-linux-amd64
+	gzip -f $(APP)-$(TAG)-linux-amd64
 	mv $(APP).exe $(APP)-$(TAG)-windows-amd64.exe
+	gzip -f $(APP)-$(TAG)-windows-amd64.exe
