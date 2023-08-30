@@ -111,7 +111,7 @@ type ConfigType struct {
 	Log        Log              `toml:"log"`
 
 	HTTPProviderConfig *HTTPProviderConfig `toml:"http_provider"`
-	Upgrade            *UpgradeConfig      `toml:"upgrade"`
+	Update             *UpdateConfig       `toml:"update"`
 }
 
 var Config *ConfigType
@@ -176,8 +176,8 @@ func InitConfig(configDir string, debugMode, testMode bool, interval int64, inpu
 		Config.Log.FileName = "stdout"
 	}
 
-	if Config.Upgrade == nil {
-		Config.Upgrade = &UpgradeConfig{
+	if Config.Update == nil {
+		Config.Update = &UpdateConfig{
 			Enable: false,
 		}
 		logger.Warningf("no upgrade configration")

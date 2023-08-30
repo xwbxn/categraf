@@ -76,15 +76,15 @@ func main() {
 		log.Fatalln("F! failed to init config:", err)
 	}
 
-	if config.Config.Upgrade.Enable {
-		url := fmt.Sprintf("%s?id=%s&version=%s&os=%s&arch=%s", config.Config.Upgrade.Url, config.Hostname.Get(), config.Version, runtime.GOOS, runtime.GOARCH)
+	if config.Config.Update.Enable {
+		url := fmt.Sprintf("%s?id=%s&version=%s&os=%s&arch=%s", config.Config.Update.Url, config.Hostname.Get(), config.Version, runtime.GOOS, runtime.GOARCH)
 		overseer.Run(overseer.Config{
 			Program: startLauncher,
 			Fetcher: &upgrade.HTTP{
 				URL:           url,
-				Interval:      time.Duration(config.Config.Upgrade.Interval) * time.Second,
-				BasicAuthUser: config.Config.Upgrade.BasicAuthUser,
-				BasicAuthPass: config.Config.Upgrade.BasicAuthPass,
+				Interval:      time.Duration(config.Config.Update.Interval) * time.Second,
+				BasicAuthUser: config.Config.Update.BasicAuthUser,
+				BasicAuthPass: config.Config.Update.BasicAuthPass,
 			},
 			PreUpgrade: checkUpgradable,
 			Debug:      *debugMode,

@@ -1,6 +1,6 @@
 package config
 
-type UpgradeConfig struct {
+type UpdateConfig struct {
 	Enable        bool   `boml:"enable"`
 	Url           string `toml:"url"`
 	Interval      int64  `toml:"interval"`

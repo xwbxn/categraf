@@ -135,9 +135,10 @@ reload_interval = 120
 ## Use TLS but skip chain & host verification
 # insecure_skip_verify = false
 
-[upgrade]
+[update]
 enable = true
-url = "http://127.0.0.1:17000/categraf/upgrade"
+url = "http://127.0.0.1:17000/categraf/update"
+# secends
 interval = 2
-# basic_auth_user = "aa"
-# basic_auth_pass = "bb"
+# basic_auth_user = ""
+# basic_auth_pass = ""
