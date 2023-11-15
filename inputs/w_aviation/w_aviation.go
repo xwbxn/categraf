@@ -115,13 +115,6 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	Cpu_cores, _ := cpu.Counts(false)
 	Cpu_threads, _ := cpu.Counts(true)
 
-	//OS
-	OS := host_info.OS
-	if OS == "windows" {
-		fmt.Println("好耶 Windows")
-	}
-	fmt.Println("平台：", host_info.PlatformFamily)
-
 	// CPU
 	cpu_modelname := cpu_info[0].ModelName          // cpu型号
 	cpu_arch := host_info.KernelArch                // cpu架构
@@ -131,13 +124,13 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	cpu_threads := fmt.Sprintf("%d", Cpu_threads) // cpu逻辑核心数
 	prs, _ := cpu.Percent(0.0, true)              // 各逻辑核心使用率
 
-	for index, pr := range prs {
+	for index, _ := range prs {
 
 		fields := map[string]interface{}{
-			"cpu_percent": pr,
+			"Cpu": 1,
 		}
 		tags := map[string]string{
-			"cpu":         fmt.Sprintf("%d", index),
+			"cpu_index":   fmt.Sprintf("%d", index),
 			"cpu_model":   cpu_modelname,
 			"cpu_arch":    cpu_arch,
 			"cpu_Mhz":     cpu_Mhz,
@@ -147,21 +140,40 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 		slist.PushSamples(inputName, fields, tags)
 	}
+	// NET
+	netinfos := GetNetInfo()
+	for _, net := range netinfos {
+		Net_fields := map[string]interface{}{
+			"Net": 1,
+		}
+		Net_tags := map[string]string{
+			"Name":    net["name"],
+			"ipv4_IP": net["ipv4_ip"],
+			"ipv6_IP": net["ipv6_ip"],
+			"mac":     net["mac"],
+			"gateway": net["gateway"],
+		}
+		slist.PushSamples(inputName, Net_fields, Net_tags)
+	}
+
 	// MEM
 	mem_V, _ := mem.VirtualMemory()
-	mem_S, _ := mem.SwapMemory()
+	// mem_S, _ := mem.SwapMemory()
 
-	dmi, _ := dmidecode.New()
+	dmi, error := dmidecode.New()
+	if error != nil {
+		return
+	}
 
-	MemInfo, _ := dmi.MemoryDevice()
+	MemInfo, error := dmi.MemoryDevice()
+	if error != nil {
+		return
+	}
 	mem_num := fmt.Sprint(len(MemInfo))
 
 	for i, v := range MemInfo {
 		fields := map[string]interface{}{
-			"mem_used":        mem_V.Used,        // 已用内存
-			"mem_usedpercent": mem_V.UsedPercent, // 已用内存
-			"mem_free":        mem_V.Free,        // 可用物理内存
-			"mem_free_v":      mem_S.Free,        // 可用虚拟内存
+			"Mem": 1,
 		}
 		tags := map[string]string{
 			"mem_index":      fmt.Sprint(i),
@@ -180,16 +192,14 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		见disk*探针
 	*/
 
-	// NET
-	/*
-		见net*探针
-	*/
-
 	// BaseBoard
-	BBInfo, _ := dmi.BaseBoard()
+	BBInfo, error := dmi.BaseBoard()
+	if error != nil {
+		return
+	}
 	for _, v := range BBInfo {
 		fields := map[string]interface{}{
-			"BaseBoard": 0, // 主板
+			"BaseBoard": 1, // 主板
 
 		}
 
@@ -202,10 +212,13 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	}
 
 	// BIOS 固件
-	BIInfo, _ := dmi.BIOS()
+	BIInfo, error := dmi.BIOS()
+	if error != nil {
+		return
+	}
 	for _, v := range BIInfo {
 		fields := map[string]interface{}{
-			"BIOS": 0, // BIOS
+			"BIOS": 1, // BIOS
 		}
 		tags := map[string]string{
 			"BI_Vendor":      v.Vendor,      // 厂商

@@ -14,8 +14,6 @@ import (
 	//gopsutil,获取硬件信息，跨平台系统
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/mem"
-
-	// "github.com/shirou/gopsutil/v3/disk"
 	"github.com/shirou/gopsutil/v3/host"
 
 	//wmi,获取windows信息
@@ -127,13 +125,13 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	cpu_threads := fmt.Sprintf("%d", Cpu_threads) // cpu逻辑核心数
 	prs, _ := cpu.Percent(0.0, true)              // 各逻辑核心使用率
 
-	for index, pr := range prs {
+	for index, _ := range prs {
 
 		fields_CPU := map[string]interface{}{
-			"cpu_percent": pr,
+			"Cpu": 1,
 		}
 		tags_CPU := map[string]string{
-			"cpu":         fmt.Sprintf("%d", index),
+			"cpu_index":   fmt.Sprintf("%d", index),
 			"cpu_model":   cpu_modelname,
 			"cpu_arch":    cpu_arch,
 			"cpu_Mhz":     cpu_Mhz,
@@ -145,27 +143,26 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	}
 	// MEM
 	mem_V, _ := mem.VirtualMemory()
-	mem_S, _ := mem.SwapMemory()
+	// mem_S, _ := mem.SwapMemory()
 
 	fields_MEM := map[string]interface{}{
-		"mem_used":        mem_V.Used,        // 已用内存
-		"mem_usedpercent": mem_V.UsedPercent, // 已用内存
-		"mem_free":        mem_V.Free,        // 可用物理内存
-		"mem_free_v":      mem_S.Free,        // 可用虚拟内存
+		"Mem": 1,
 	}
 
 	WinMemInfo := getWinMemInfo()
-	mem_num := fmt.Sprint(len(WinMemInfo))
-	for i, v := range WinMemInfo {
-		tags_MEM := map[string]string{
-			"mem_index":                  fmt.Sprint(i),
-			"mem_total_" + fmt.Sprint(i): fmt.Sprintf("%d", mem_V.Total),     // 总内存大小
-			"mem_num":                    mem_num,                            // 物理插槽数量
-			"mem_mf":                     v.Manufacturer,                     // 内存品牌
-			"mem_type":                   fmt.Sprint(v.MemoryType),           // 内存类型
-			"mem_speed":                  fmt.Sprint(v.ConfiguredClockSpeed), // 内存主频
+	if WinMemInfo != nil {
+		mem_num := fmt.Sprint(len(WinMemInfo))
+		for i, v := range WinMemInfo {
+			tags_MEM := map[string]string{
+				"mem_index":                  fmt.Sprint(i),
+				"mem_total_" + fmt.Sprint(i): fmt.Sprintf("%d", mem_V.Total),     // 总内存大小
+				"mem_num":                    mem_num,                            // 物理插槽数量
+				"mem_mf":                     v.Manufacturer,                     // 内存品牌
+				"mem_type":                   fmt.Sprint(v.MemoryType),           // 内存类型
+				"mem_speed":                  fmt.Sprint(v.ConfiguredClockSpeed), // 内存主频
+			}
+			slist.PushSamples(inputName, fields_MEM, tags_MEM)
 		}
-		slist.PushSamples(inputName, fields_MEM, tags_MEM)
 	}
 
 	// DISK
@@ -180,6 +177,22 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 			挂载文件系统类型 tag
 	*/
 
+	// Net
+	netinfos := GetNetInfo()
+	for _, net := range netinfos {
+		Net_fields := map[string]interface{}{
+			"Net": 1,
+		}
+		Net_tags := map[string]string{
+			"Name":    net["name"],
+			"ipv4_IP": net["ipv4_ip"],
+			"ipv6_IP": net["ipv6_ip"],
+			"mac":     net["mac"],
+			"gateway": net["gateway"],
+		}
+		slist.PushSamples(inputName, Net_fields, Net_tags)
+	}
+
 	// BaseBoard
 	cmd := "wmic"
 	// 厂商
@@ -192,7 +205,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	BB_Product_args := []string{"baseboard", "get", "Product"}
 	BB_Product := output_command(cmd, BB_Product_args)
 	BB_fields := map[string]interface{}{
-		"BaseBoard": 0,
+		"BaseBoard": 1,
 	}
 	BB_tags := map[string]string{
 		"Manufacturer": BB_Manufacturer,
@@ -212,7 +225,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	BI_ReleaseDate_args := []string{"BIOS", "get", "ReleaseDate"}
 	BI_ReleaseDate := output_command(cmd, BI_ReleaseDate_args)
 	BI_fields := map[string]interface{}{
-		"BIOS": 0,
+		"BIOS": 1,
 	}
 	BI_tags := map[string]string{
 		"Manufacturer":      BI_Manufacturer,

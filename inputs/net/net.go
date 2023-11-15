@@ -73,7 +73,7 @@ func (s *NetIOStats) Gather(slist *types.SampleList) {
 	for _, iface := range interfaces {
 		interfacesByName[iface.Name] = iface
 	}
-	var up_bytes, down_bytes float64
+
 	for _, io := range netio {
 		if len(s.Interfaces) > 0 {
 			var found bool
@@ -99,14 +99,9 @@ func (s *NetIOStats) Gather(slist *types.SampleList) {
 		if iface.Flags&net.FlagUp == 0 {
 			continue
 		}
-		netinfo := GetNetInfo()
 
 		tags := map[string]string{
 			"interface": io.Name,
-			"ipv4_IP":   netinfo[io.Name]["ipv4_IP"],
-			"ipv6_IP":   netinfo[io.Name]["ipv6_IP"],
-			"Mac":       netinfo[io.Name]["mac"],
-			"Gateway":   netinfo[io.Name]["gateway"],
 		}
 
 		fields := map[string]interface{}{
@@ -123,15 +118,5 @@ func (s *NetIOStats) Gather(slist *types.SampleList) {
 		}
 
 		slist.PushSamples(inputName, fields, tags)
-		up_bytes += float64(io.BytesSent)
-		down_bytes += float64(io.BytesRecv)
 	}
-	tags := map[string]string{}
-
-	fields := map[string]interface{}{
-		"up_bytes":   up_bytes,
-		"down_bytes": down_bytes,
-	}
-	slist.PushSamples(inputName, fields, tags)
-
 }
