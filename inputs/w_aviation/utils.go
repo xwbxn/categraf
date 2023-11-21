@@ -47,7 +47,6 @@ func getGatewayMacByIface(ipv4_s string, name string) string {
 			if len(fields[2]) > 8 {
 				return fields[2]
 			}
-
 		}
 	}
 
@@ -55,21 +54,40 @@ func getGatewayMacByIface(ipv4_s string, name string) string {
 }
 
 func GetNetInfo() map[string]map[string]string {
-	interfaces, _ := net.Interfaces()
 	netaddrs := map[string]map[string]string{}
+
+	interfaces, _ := net.Interfaces()
+	if interfaces == nil {
+		return nil
+	}
 	for _, inter := range interfaces {
 		addrs, _ := inter.Addrs()
-		var ipv4_ip, ipv6_ip string
-		if len(addrs) < 2 {
+
+		var ipv4_ip, ipv6_ip, gateway string
+		if len(addrs) == 0 {
+			ipv4_ip = "无"
+			ipv6_ip = "无"
+			gateway = "无"
+		} else if len(addrs) < 2 {
 			ipv4_ip = addrs[0].String()
 			ipv6_ip = "无"
+			gateway = getGatewayMacByIface(addrs[len(addrs)-1].String(), inter.Name)
 		} else {
-			ipv4_ip = addrs[len(addrs)-1].String()
-			ipv6_ip = addrs[0].String()
+			if runtime.GOOS == "windows" {
+				ipv4_ip = addrs[len(addrs)-1].String()
+				ipv6_ip = addrs[0].String()
+				gateway = getGatewayMacByIface(addrs[len(addrs)-1].String(), inter.Name)
+			} else {
+				ipv6_ip = addrs[len(addrs)-1].String()
+				ipv4_ip = addrs[0].String()
+				gateway = getGatewayMacByIface(addrs[0].String(), inter.Name)
+			}
 		}
 
-		gateway := getGatewayMacByIface(addrs[len(addrs)-1].String(), inter.Name)
 		mac := inter.HardwareAddr.String()
+		if mac == "" {
+			mac = "00:00:00:00:00:00"
+		}
 
 		netaddrs[inter.Name] = map[string]string{
 			"name":    inter.Name,
