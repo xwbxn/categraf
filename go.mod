@@ -74,7 +74,7 @@ require (
 
 require (
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
-	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
+	github.com/StackExchange/wmi v1.2.1 // indirect
 	github.com/alibabacloud-go/alibabacloud-gateway-spi v0.0.4 // indirect
 	github.com/alibabacloud-go/debug v0.0.0-20190504072949-9472017b5c68 // indirect
 	github.com/alibabacloud-go/endpoint-util v1.1.0 // indirect
@@ -96,6 +96,7 @@ require (
 	github.com/clbanning/mxj/v2 v2.5.5 // indirect
 	github.com/digitalocean/go-smbios v0.0.0-20180907143718-390a4f403a8e // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
+	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/godbus/dbus/v5 v5.0.4 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
@@ -105,6 +106,8 @@ require (
 	github.com/jackc/pgproto3/v2 v2.3.1 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20200714003250-2b9c44734f2b // indirect
 	github.com/jackc/pgtype v1.12.0 // indirect
+	github.com/jaypipes/ghw v0.12.0 // indirect
+	github.com/jaypipes/pcidb v1.0.0 // indirect
 	github.com/jpillora/overseer v1.1.6 // indirect
 	github.com/jpillora/s3 v1.1.4 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.4 // indirect
@@ -119,6 +122,7 @@ require (
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/yumaojun03/dmidecode v0.1.4 // indirect
 	golang.org/x/arch v0.3.0 // indirect
+	howett.net/plist v1.0.0 // indirect
 )
 
 require (
