@@ -18,6 +18,9 @@ import (
 	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/shirou/gopsutil/v3/host"
 
+	// 获取范式电源信息
+	"github.com/distatus/battery"
+
 	// dmidecode,获取linux信息
 	"github.com/yumaojun03/dmidecode"
 )
@@ -102,6 +105,8 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	GetOSInfo(slist)
 	// BUS
 	GetBusInfo(slist)
+	// Power
+	GetPowerInfo(slist)
 }
 
 // func for get CPU info
@@ -301,6 +306,35 @@ func GetBusInfo(slist *types.SampleList) error {
 			"product": device.Product.Name,
 		}
 		slist.PushSamples(inputName, fields, tags)
+	}
+	return nil
+}
+
+func GetPowerInfo(slist *types.SampleList) error {
+	batteries, err := battery.GetAll()
+	if err != nil {
+		fmt.Println("Could not get battery info!")
+		return err
+	}
+
+	for i, battery := range batteries {
+		fields := map[string]interface{}{
+			"power": 1,
+		}
+		tags := map[string]string{
+			"index":  fmt.Sprint(i),
+			"status": battery.State.String(),
+		}
+		slist.PushSamples(inputName, fields, tags)
+		// ----
+		fmt.Printf("Bat%d: ", i)
+		fmt.Printf("state: %s, ", battery.State.String())
+		fmt.Printf("current capacity: %f mWh, ", battery.Current)
+		fmt.Printf("last full capacity: %f mWh, ", battery.Full)
+		fmt.Printf("design capacity: %f mWh, ", battery.Design)
+		fmt.Printf("charge rate: %f mW, ", battery.ChargeRate)
+		fmt.Printf("voltage: %f V, ", battery.Voltage)
+		fmt.Printf("design voltage: %f V\n", battery.DesignVoltage)
 	}
 	return nil
 }
