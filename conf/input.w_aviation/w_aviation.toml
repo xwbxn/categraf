@@ -1,5 +1,4 @@
-# # collect interval
-# interval = 15
+# collect interval
+interval = 60
 
 [[instances]]
-# HelloWorld = "Hello rainbow,that's ok!"

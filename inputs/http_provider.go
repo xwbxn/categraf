@@ -2,6 +2,7 @@ package inputs
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -194,6 +195,12 @@ func (hrp *HTTPProvider) doReq() (*httpProviderResponse, error) {
 		log.Println("E! http provider: request reload config error:", err)
 		return nil, err
 	}
+
+	if resp.StatusCode == 404 {
+		log.Println("E! http provider: hostname:", config.Config.GetHostname())
+		return nil, errors.New("initial http configs")
+	}
+
 	defer resp.Body.Close()
 	respData, err := io.ReadAll(resp.Body)
 	if err != nil {
