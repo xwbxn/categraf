@@ -18,6 +18,9 @@ import (
 	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/shirou/gopsutil/v3/host"
 
+	// 获取范式电源信息
+	"github.com/distatus/battery"
+
 	//wmi,获取windows信息
 	"github.com/StackExchange/wmi"
 )
@@ -102,6 +105,8 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	GetOSInfo(slist)
 	// Bus
 	GetBusInfo(slist)
+	// Power
+	GetPowerInfo(slist)
 }
 
 // func for get CPU info
@@ -164,6 +169,24 @@ func GetMemInfo(slist *types.SampleList) error {
 		slist.PushSamples(inputName, fields, tags)
 	}
 	return nil
+}
+
+type PhysicalMemory struct {
+	Manufacturer         string // 品牌
+	MemoryType           uint16 // 类型
+	ConfiguredClockSpeed uint32 // 运行设置频率
+	Speed                uint32 // 运行频率
+	Capacity             uint64 // 存储大小
+}
+
+// windwos 获取内存信息 详细信息请访问 https://learn.microsoft.com/zh-cn/windows/win32/cimwin32prov/win32-physicalmemory
+func getWinMemInfo() ([]PhysicalMemory, error) {
+	var physicalMemory []PhysicalMemory
+	error := wmi.Query("Select * from Win32_PhysicalMemory", &physicalMemory)
+	if error != nil {
+		return nil, error
+	}
+	return physicalMemory, nil
 }
 
 // func for get NET info
@@ -265,24 +288,6 @@ func GetBIOSInfo(slist *types.SampleList) error {
 	return nil
 }
 
-type PhysicalMemory struct {
-	Manufacturer         string // 品牌
-	MemoryType           uint16 // 类型
-	ConfiguredClockSpeed uint32 // 运行设置频率
-	Speed                uint32 // 运行频率
-	Capacity             uint64 // 存储大小
-}
-
-// windwos 获取内存信息 详细信息请访问 https://learn.microsoft.com/zh-cn/windows/win32/cimwin32prov/win32-physicalmemory
-func getWinMemInfo() ([]PhysicalMemory, error) {
-	var physicalMemory []PhysicalMemory
-	error := wmi.Query("Select * from Win32_PhysicalMemory", &physicalMemory)
-	if error != nil {
-		return nil, error
-	}
-	return physicalMemory, nil
-}
-
 func GetOSInfo(slist *types.SampleList) error {
 	info, err := host.Info()
 	if err != nil {
@@ -324,6 +329,35 @@ func GetBusInfo(slist *types.SampleList) error {
 			"product": device.Name,
 		}
 		slist.PushSamples(inputName, fields, tags)
+	}
+	return nil
+}
+
+func GetPowerInfo(slist *types.SampleList) error {
+	batteries, err := battery.GetAll()
+	if err != nil {
+		fmt.Println("Could not get battery info!")
+		return err
+	}
+
+	for i, battery := range batteries {
+		fields := map[string]interface{}{
+			"power": 1,
+		}
+		tags := map[string]string{
+			"index":  fmt.Sprint(i),
+			"status": battery.State.String(),
+		}
+		slist.PushSamples(inputName, fields, tags)
+		// ----
+		fmt.Printf("Bat%d: ", i)
+		fmt.Printf("state: %s, ", battery.State.String())
+		fmt.Printf("current capacity: %f mWh, ", battery.Current)
+		fmt.Printf("last full capacity: %f mWh, ", battery.Full)
+		fmt.Printf("design capacity: %f mWh, ", battery.Design)
+		fmt.Printf("charge rate: %f mW, ", battery.ChargeRate)
+		fmt.Printf("voltage: %f V, ", battery.Voltage)
+		fmt.Printf("design voltage: %f V\n", battery.DesignVoltage)
 	}
 	return nil
 }

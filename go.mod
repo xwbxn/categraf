@@ -24,9 +24,9 @@ require (
 	github.com/stretchr/testify v1.8.3
 	github.com/toolkits/pkg v1.3.0
 	golang.org/x/net v0.10.0
-	golang.org/x/sys v0.8.0
-	golang.org/x/text v0.9.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
+	golang.org/x/sys v0.9.0
+	golang.org/x/text v0.9.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -41,7 +41,7 @@ require (
 	github.com/bytedance/sonic v1.9.1 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
 	github.com/digitalocean/go-smbios v0.0.0-20180907143718-390a4f403a8e // indirect
-	github.com/frankban/quicktest v1.14.3 // indirect
+	github.com/distatus/battery v0.11.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
