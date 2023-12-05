@@ -2,3 +2,5 @@
 interval = 60
 
 [[instances]]
+path = "thirdpart/ipmiutil"
+ipmi_timeout = 10

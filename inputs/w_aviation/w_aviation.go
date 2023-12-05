@@ -4,9 +4,12 @@
 package w_aviation
 
 import (
+	"context"
 	"fmt" //输出日志，用于DeBug
 	"os"
+	"os/exec"
 	"strings"
+	"time"
 
 	"flashcat.cloud/categraf/config" //定义插件配置项
 	"flashcat.cloud/categraf/inputs" //引入inputs对象聚合数据
@@ -17,6 +20,7 @@ import (
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/shirou/gopsutil/v3/host"
+	"github.com/toolkits/pkg/logger"
 
 	// 获取范式电源信息
 	"github.com/distatus/battery"
@@ -73,11 +77,15 @@ func (wa *w_aviation) Gather(slist *types.SampleList) {}
 // 用于配置插件详细参数
 type Instance struct {
 	config.InstanceConfig
-	HelloWorld string `toml:"HelloWorld"`
+	ImpiTimeout config.Duration `toml:"ipmi_timeout"`
+	Path        string          `toml:path`
 }
 
 // 初始化
 func (ins *Instance) Init() error {
+	if ins.ImpiTimeout == 0 {
+		ins.ImpiTimeout = config.Duration(time.Second * 5)
+	}
 	return nil
 }
 
@@ -90,27 +98,29 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	// slist.PushSamples(inputName, fields, tags)
 
 	// CPU
-	GetCpuInfo(slist)
+	ins.GetCpuInfo(slist)
 	// MEM
-	GetMemInfo(slist)
+	ins.GetMemInfo(slist)
 	// NET
-	GetNetInfoS(slist)
+	ins.GetNetInfoS(slist)
 	// DISK
-	GetDiskInfo(slist)
+	ins.GetDiskInfo(slist)
 	// BaseBoard
-	GetBaseBoardInfo(slist)
+	ins.GetBaseBoardInfo(slist)
 	// BIOS
-	GetBIOSInfo(slist)
+	ins.GetBIOSInfo(slist)
 	// OS
-	GetOSInfo(slist)
+	ins.GetOSInfo(slist)
 	// BUS
-	GetBusInfo(slist)
-	// Power
-	GetPowerInfo(slist)
+	ins.GetBusInfo(slist)
+	// Battery
+	ins.GetBatteryInfo(slist)
+	// Power Supply
+	ins.GetPowerInfo(slist)
 }
 
 // func for get CPU info
-func GetCpuInfo(slist *types.SampleList) error {
+func (ins *Instance) GetCpuInfo(slist *types.SampleList) error {
 	host_info, _ := host.Info() // cpu架构
 	cpu_arch := host_info.KernelArch
 	cpu_infos, _ := cpu.Info()
@@ -145,7 +155,7 @@ func GetCpuInfo(slist *types.SampleList) error {
 }
 
 // func for get MEM info
-func GetMemInfo(slist *types.SampleList) error {
+func (ins *Instance) GetMemInfo(slist *types.SampleList) error {
 	dmi, error := dmidecode.New()
 	if error != nil {
 		return error
@@ -162,10 +172,10 @@ func GetMemInfo(slist *types.SampleList) error {
 		}
 		tags := map[string]string{
 			"index":     fmt.Sprint(i),
-			"capacity":  fmt.Sprintf("%d", v.Size),                // 内存大小
-			"brand":     v.Manufacturer,                           // 内存品牌
-			"type":      fmt.Sprint(v.Type),                       // 内存类型
-			"frequency": fmt.Sprint(v.ConfiguredMemoryClockSpeed), // 内存主频
+			"capacity":  fmt.Sprintf("%d", v.Size), // 内存大小
+			"brand":     v.Manufacturer,            // 内存品牌
+			"type":      fmt.Sprint(v.Type),        // 内存类型
+			"frequency": fmt.Sprint(v.Speed),       // 内存主频
 			// "mem_speed":      fmt.Sprint(v.Speed),                      // 内存主频
 			// "mem_num":        mem_num,                                  // 物理插槽数量
 		}
@@ -174,7 +184,7 @@ func GetMemInfo(slist *types.SampleList) error {
 	return nil
 }
 
-func GetDiskInfo(slist *types.SampleList) error {
+func (ins *Instance) GetDiskInfo(slist *types.SampleList) error {
 	diskinfos, err := disk.Partitions(false)
 	if err != nil {
 		return err
@@ -199,7 +209,7 @@ func GetDiskInfo(slist *types.SampleList) error {
 }
 
 // func for get NET info
-func GetNetInfoS(slist *types.SampleList) error {
+func (ins *Instance) GetNetInfoS(slist *types.SampleList) error {
 	netinfos := GetNetInfo()
 	if len(netinfos) == 0 {
 		return nil
@@ -224,7 +234,7 @@ func GetNetInfoS(slist *types.SampleList) error {
 }
 
 // func for get BaseBoard info
-func GetBaseBoardInfo(slist *types.SampleList) error {
+func (ins *Instance) GetBaseBoardInfo(slist *types.SampleList) error {
 	dmi, error := dmidecode.New()
 	if error != nil {
 		return error
@@ -248,7 +258,7 @@ func GetBaseBoardInfo(slist *types.SampleList) error {
 }
 
 // func for get NET info
-func GetBIOSInfo(slist *types.SampleList) error {
+func (ins *Instance) GetBIOSInfo(slist *types.SampleList) error {
 	dmi, error := dmidecode.New()
 	if error != nil {
 		return error
@@ -271,7 +281,7 @@ func GetBIOSInfo(slist *types.SampleList) error {
 	return nil
 }
 
-func GetOSInfo(slist *types.SampleList) error {
+func (ins *Instance) GetOSInfo(slist *types.SampleList) error {
 	info, err := host.Info()
 	if err != nil {
 		return err
@@ -290,7 +300,7 @@ func GetOSInfo(slist *types.SampleList) error {
 	return nil
 }
 
-func GetBusInfo(slist *types.SampleList) error {
+func (ins *Instance) GetBusInfo(slist *types.SampleList) error {
 	pci, err := ghw.PCI()
 	if err != nil {
 		return err
@@ -310,7 +320,7 @@ func GetBusInfo(slist *types.SampleList) error {
 	return nil
 }
 
-func GetPowerInfo(slist *types.SampleList) error {
+func (ins *Instance) GetBatteryInfo(slist *types.SampleList) error {
 	batteries, err := battery.GetAll()
 	if err != nil {
 		fmt.Println("Could not get battery info!")
@@ -336,5 +346,39 @@ func GetPowerInfo(slist *types.SampleList) error {
 		fmt.Printf("voltage: %f V, ", battery.Voltage)
 		fmt.Printf("design voltage: %f V\n", battery.DesignVoltage)
 	}
+	return nil
+}
+
+func (ins *Instance) GetPowerInfo(slist *types.SampleList) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(ins.ImpiTimeout))
+	defer cancel()
+	cmd := exec.CommandContext(ctx, ins.Path, "sensor", "-s", "-g", "\"Power Supply\"")
+	out, err := cmd.CombinedOutput()
+	logger.Debug(string(out))
+	if err != nil {
+		return fmt.Errorf("failed to run command %q: %w - %s", strings.Join(cmd.Args, " "), err, string(out))
+	}
+	lines := strings.Split(string(out), "\n")
+	for _, line := range lines {
+		ipmiFields := ExtractFieldsFromRegex(line)
+		if len(ipmiFields) == 0 {
+			continue
+		}
+
+		val := float64(0)
+		if ipmiFields["status"] == "OK" || ipmiFields["status"] == "Present" {
+			val = 1
+		}
+
+		fields := map[string]interface{}{
+			"power": val, // power
+		}
+		tags := map[string]string{
+			"sensor": ipmiFields["name"],
+			"type":   ipmiFields["sdr"],
+		}
+		slist.PushSamples(inputName, fields, tags)
+	}
+
 	return nil
 }
