@@ -136,7 +136,7 @@ reload_interval = 60
 # insecure_skip_verify = false
 
 [update]
-enable = true
+enable = false
 url = "http://127.0.0.1:17000/categraf/update"
 # secends
 interval = 2
