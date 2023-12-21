@@ -1,6 +1,6 @@
 [global]
 # whether print configs
-print_configs = true
+print_configs = false
 
 # add label(agent_hostname) to series
 # "" -> auto detect hostname
@@ -121,3 +121,13 @@ reload_interval = 60
 # tls_key = "/etc/categraf/key.pem"
 ## Use TLS but skip chain & host verification
 # insecure_skip_verify = false
+
+[prometheus]
+enable = false
+scrape_config_file = "/path/to/in_cluster_scrape.yaml"
+## log level, debug warn info error
+log_level = "info"
+## wal file storage path ,default ./data-agent
+# wal_storage_path = "/path/to/storage"
+## wal reserve time duration, default value is 2 hour
+# wal_min_duration = 2

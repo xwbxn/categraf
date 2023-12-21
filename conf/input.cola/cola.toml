@@ -1,0 +1,13 @@
+# collect interval
+# interval = 15
+
+# [[instances]]
+# labels = { app="app" }
+
+# base_url = ""
+# net_link = 2
+# username = ""
+# password = ""
+# table = ""
+# fields = [""]
+# filter = ""

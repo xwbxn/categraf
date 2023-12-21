@@ -21,6 +21,9 @@ func NewAgent() (*Agent, error) {
 	agent := &Agent{
 		agents: []AgentModule{
 			NewMetricsAgent(),
+			NewTracesAgent(),
+			NewLogsAgent(),
+			NewPrometheusAgent(),
 			NewIbexAgent(),
 		},
 	}

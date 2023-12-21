@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"flashcat.cloud/categraf/config/traces"
 	"flashcat.cloud/categraf/pkg/cfg"
 	"flashcat.cloud/categraf/pkg/tls"
 	jsoniter "github.com/json-iterator/go"
@@ -98,13 +99,16 @@ type ConfigType struct {
 	InputFilters string
 
 	// from config.toml
-	Global    Global           `toml:"global"`
-	WriterOpt WriterOpt        `toml:"writer_opt"`
-	Writers   []WriterOption   `toml:"writers"`
-	HTTP      *HTTP            `toml:"http"`
-	Ibex      *IbexConfig      `toml:"ibex"`
-	Heartbeat *HeartbeatConfig `toml:"heartbeat"`
-	Log       Log              `toml:"log"`
+	Global     Global           `toml:"global"`
+	WriterOpt  WriterOpt        `toml:"writer_opt"`
+	Writers    []WriterOption   `toml:"writers"`
+	Logs       Logs             `toml:"logs"`
+	Traces     *traces.Config   `toml:"traces"`
+	HTTP       *HTTP            `toml:"http"`
+	Prometheus *Prometheus      `toml:"prometheus"`
+	Ibex       *IbexConfig      `toml:"ibex"`
+	Heartbeat  *HeartbeatConfig `toml:"heartbeat"`
+	Log        Log              `toml:"log"`
 
 	HTTPProviderConfig *HTTPProviderConfig `toml:"http_provider"`
 	Update             *UpdateConfig       `toml:"update"`
@@ -150,6 +154,10 @@ func InitConfig(configDir string, debugMode, testMode bool, interval int64, inpu
 	}
 
 	if err := InitHostname(); err != nil {
+		return err
+	}
+
+	if err := traces.Parse(Config.Traces); err != nil {
 		return err
 	}
 

@@ -125,7 +125,7 @@ remote_url = "http://127.0.0.1:17000/categraf/configs"
 timeout = 5
 
 # reload interval in seconds
-reload_interval = 60
+reload_interval = 120
 
 ## Optional TLS Config
 # use_tls = false

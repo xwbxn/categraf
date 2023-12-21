@@ -91,12 +91,17 @@ func main() {
 				BasicAuthUser: config.Config.Update.BasicAuthUser,
 				BasicAuthPass: config.Config.Update.BasicAuthPass,
 			},
-			Debug: *debugMode,
+			PreUpgrade: checkUpgradable,
+			Debug:      *debugMode,
 		})
 	} else {
 		program()
 	}
 
+}
+
+func checkUpgradable(tempBinaryPath string) error {
+	return nil
 }
 
 func startLauncher(state overseer.State) {

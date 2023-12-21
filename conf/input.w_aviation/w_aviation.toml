@@ -1,5 +1,5 @@
-# collect interval
-interval = 60
+# # collect interval
+# interval = 15
 
 [[instances]]
 path = "thirdpart/ipmiutil"
