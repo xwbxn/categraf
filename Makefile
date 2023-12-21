@@ -26,27 +26,27 @@ build-enterprise:
 
 build-pure:
 	echo "Building version $(GIT_VERSION)"
-	go build --tags "no_prometheus no_traces" -ldflags $(LDFLAGS) -o $(APP)
+	go build --tags "no_prometheus no_traces no_ibex no_logs" -ldflags $(LDFLAGS) -o $(APP)
 
 build-linux:
 	echo "Building version $(GIT_VERSION) for linux"
-	GOOS=linux GOARCH=amd64 go build -ldflags $(LDFLAGS) -o $(APP)
+	GOOS=linux GOARCH=amd64 go build --tags "no_prometheus no_traces no_ibex no_logs" -ldflags $(LDFLAGS) -o $(APP)
 
 build-linux-arm:
 	echo "Building version $(GIT_VERSION) for linux"
-	GOOS=linux GOARCH=arm64 go build -ldflags $(LDFLAGS) -o $(APP)
+	GOOS=linux GOARCH=arm64 go build --tags "no_prometheus no_traces no_ibex no_logs" -ldflags $(LDFLAGS) -o $(APP)
 
 build-windows:
 	echo "Building version $(GIT_VERSION) for windows"
-	GOOS=windows GOARCH=amd64 go build -ldflags $(LDFLAGS) -o $(APP).exe
+	GOOS=windows GOARCH=amd64 go build --tags "no_prometheus no_traces no_ibex no_logs" -ldflags $(LDFLAGS) -o $(APP).exe
 
 build-mac:
 	echo "Building version $(GIT_VERSION) for mac"
-	GOOS=darwin GOARCH=amd64 go build -ldflags $(LDFLAGS) -o $(APP).mac
+	GOOS=darwin GOARCH=amd64 go build --tags "no_prometheus no_traces no_ibex no_logs" -ldflags $(LDFLAGS) -o $(APP).mac
 
 build-mac-arm:
 	echo "Building version $(GIT_VERSION) for mac"
-	GOOS=darwin GOARCH=arm64 go build -ldflags $(LDFLAGS) -o $(APP).mac
+	GOOS=darwin GOARCH=arm64 go build --tags "no_prometheus no_traces no_ibex no_logs" -ldflags $(LDFLAGS) -o $(APP).mac
 
 build-image: build-linux
 	echo "Building image flashcatcloud/categraf:$(TAG)"

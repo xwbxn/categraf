@@ -8,16 +8,13 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/chai2010/winsvc"
 	"github.com/kardianos/service"
 	"github.com/toolkits/pkg/net/tcpx"
 	"github.com/toolkits/pkg/runner"
-	"github.com/xwbxn/overseer"
 	"gopkg.in/natefinch/lumberjack.v2"
 
 	"flashcat.cloud/categraf/agent"
@@ -27,7 +24,6 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/heartbeat"
 	"flashcat.cloud/categraf/pkg/osx"
-	"flashcat.cloud/categraf/upgrade"
 	"flashcat.cloud/categraf/writer"
 )
 
@@ -79,8 +75,6 @@ func initLog(output string) {
 	}
 }
 
-// create another main() to run the overseer process
-// and then convert your old main() into a 'prog(state)'
 func main() {
 	flag.Parse()
 
@@ -100,35 +94,6 @@ func main() {
 	if err := config.InitConfig(*configDir, *debugMode, *testMode, *interval, *inputFilters); err != nil {
 		log.Fatalln("F! failed to init config:", err)
 	}
-
-	if config.Config.Update.Enable {
-		url := fmt.Sprintf("%s?id=%s&version=%s&os=%s&arch=%s", config.Config.Update.Url, config.Hostname.Get(), config.Version, runtime.GOOS, runtime.GOARCH)
-		overseer.Run(overseer.Config{
-			Program: startLauncher,
-			Fetcher: &upgrade.HTTP{
-				URL:           url,
-				Interval:      time.Duration(config.Config.Update.Interval) * time.Second,
-				BasicAuthUser: config.Config.Update.BasicAuthUser,
-				BasicAuthPass: config.Config.Update.BasicAuthPass,
-			},
-			PreUpgrade: checkUpgradable,
-			Debug:      *debugMode,
-		})
-	} else {
-		program()
-	}
-
-}
-
-func checkUpgradable(tempBinaryPath string) error {
-	return nil
-}
-
-func startLauncher(state overseer.State) {
-	program()
-}
-
-func program() {
 
 	doOSsvc()
 	printEnv()

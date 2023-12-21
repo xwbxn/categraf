@@ -8,6 +8,7 @@ import (
 	"fmt" //输出日志，用于DeBug
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 
@@ -141,12 +142,13 @@ func (ins *Instance) GetCpuInfo(slist *types.SampleList) error {
 			"cpu": 1,
 		}
 		tags := map[string]string{
-			"index":        fmt.Sprintf("%d", cpu_info.CPU), // cpu序号
-			"model":        cpu_modelname,                   // cpu型号
-			"arch":         cpu_arch,                        // cpu架构
-			"frequency":    cpu_Mhz,                         // 主频
-			"core_count":   cpu_cores,                       // 系统总物理核心数
-			"thread_count": cpu_threads,                     // 系统总逻辑核心数
+			"index":         fmt.Sprintf("%d", cpu_info.CPU),              // cpu序号
+			"model":         cpu_modelname,                                // cpu型号
+			"arch":          cpu_arch,                                     // cpu架构
+			"frequency":     cpu_Mhz,                                      // 主频
+			"core_count":    cpu_cores,                                    // 系统总物理核心数
+			"thread_count":  cpu_threads,                                  // 系统总逻辑核心数
+			"max_frequency": fmt.Sprintf("%.0f", getCpuMaxMhz(&cpu_info)), //最大主频
 		}
 
 		slist.PushSamples(inputName, fields, tags) // cpu主频
@@ -381,4 +383,33 @@ func (ins *Instance) GetPowerInfo(slist *types.SampleList) error {
 	}
 
 	return nil
+}
+
+func sysCPUPath(cpu int32, relPath string) string {
+	return HostSys(fmt.Sprintf("devices/system/cpu/cpu%d", cpu), relPath)
+}
+
+func getCpuMaxMhz(c *cpu.InfoStat) float64 {
+	var lines []string
+	var err error
+	var value float64
+
+	// override the value of c.Mhz with cpufreq/cpuinfo_max_freq regardless
+	// of the value from /proc/cpuinfo because we want to report the maximum
+	// clock-speed of the CPU for c.Mhz, matching the behaviour of Windows
+	lines, err = ReadLines(sysCPUPath(c.CPU, "cpufreq/cpuinfo_max_freq"))
+	// if we encounter errors below such as there are no cpuinfo_max_freq file,
+	// we just ignore. so let Mhz is 0.
+	if err != nil || len(lines) == 0 {
+		return 0
+	}
+	value, err = strconv.ParseFloat(lines[0], 64)
+	if err != nil {
+		return 0
+	}
+	value = value / 1000.0 // value is in kHz
+	if value > 9999 {
+		value = c.Mhz / 1000.0 // value in Hz
+	}
+	return value
 }

@@ -72,7 +72,6 @@ require (
 
 require (
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
-	github.com/StackExchange/wmi v1.2.1 // indirect
 	github.com/alibabacloud-go/alibabacloud-gateway-spi v0.0.4 // indirect
 	github.com/alibabacloud-go/debug v0.0.0-20190504072949-9472017b5c68 // indirect
 	github.com/alibabacloud-go/endpoint-util v1.1.0 // indirect
@@ -93,7 +92,6 @@ require (
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
 	github.com/clbanning/mxj/v2 v2.5.5 // indirect
 	github.com/digitalocean/go-smbios v0.0.0-20180907143718-390a4f403a8e // indirect
-	github.com/distatus/battery v0.11.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
@@ -105,7 +103,6 @@ require (
 	github.com/jackc/pgproto3/v2 v2.3.1 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20200714003250-2b9c44734f2b // indirect
 	github.com/jackc/pgtype v1.12.0 // indirect
-	github.com/jaypipes/ghw v0.12.0 // indirect
 	github.com/jaypipes/pcidb v1.0.0 // indirect
 	github.com/jpillora/overseer v1.1.6 // indirect
 	github.com/jpillora/s3 v1.1.4 // indirect
@@ -120,7 +117,6 @@ require (
 	github.com/tidwall/wal v1.1.7 // indirect
 	github.com/tjfoc/gmsm v1.3.2 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
-	github.com/yumaojun03/dmidecode v0.1.4 // indirect
 	golang.org/x/arch v0.3.0 // indirect
 	howett.net/plist v1.0.0 // indirect
 )
@@ -129,6 +125,7 @@ require (
 	cloud.google.com/go/monitoring v1.13.0
 	github.com/IBM/sarama v1.42.1
 	github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible
+	github.com/StackExchange/wmi v1.2.1
 	github.com/alibabacloud-go/cms-20190101/v8 v8.0.0
 	github.com/alibabacloud-go/cms-export-20211101/v2 v2.0.0
 	github.com/alibabacloud-go/darabonba-openapi/v2 v2.0.0
@@ -141,6 +138,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.18.3
 	github.com/bmatcuk/doublestar/v3 v3.0.0
 	github.com/coreos/go-systemd/v22 v22.3.2
+	github.com/distatus/battery v0.11.0
+	github.com/jaypipes/ghw v0.12.0
 	github.com/kardianos/service v1.2.2
 	github.com/karrick/godirwalk v1.10.3
 	github.com/likexian/whois v1.15.0
@@ -150,8 +149,9 @@ require (
 	github.com/prometheus-community/pro-bing v0.1.0
 	github.com/tidwall/gjson v1.14.4
 	github.com/vmware/govmomi v0.29.0
-	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1
 	github.com/xwbxn/overseer v0.0.2
+	github.com/yumaojun03/dmidecode v0.1.4
+	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1
 )
 
 replace gopkg.in/yaml.v2 => github.com/rfratto/go-yaml v0.0.0-20211119180816-77389c3526dc
@@ -318,7 +318,7 @@ require (
 	github.com/rs/cors v1.8.2 // indirect
 	github.com/samuel/go-zookeeper v0.0.0-20190923202752-2cc03de413da // indirect
 	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.9
-	github.com/shirou/gopsutil v3.21.11+incompatible // indirect
+	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
 	github.com/spf13/afero v1.9.2 // indirect

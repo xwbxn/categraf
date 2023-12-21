@@ -138,6 +138,7 @@ func (ic *InternalConfig) Process(slist *types.SampleList) *types.SampleList {
 
 	now := time.Now()
 	ss := slist.PopBackAll()
+	hostIp := Config.GetHostIP()
 
 	for i := range ss {
 		if ss[i] == nil {
@@ -218,9 +219,7 @@ func (ic *InternalConfig) Process(slist *types.SampleList) *types.SampleList {
 		}
 
 		// add ip_address
-		if Config.Global.IP != "" {
-			ss[i].Labels["agent_ip"] = Config.Global.IP
-		}
+		ss[i].Labels["agent_ip"] = hostIp
 
 		nlst.PushFront(ss[i])
 	}

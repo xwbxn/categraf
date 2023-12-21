@@ -112,13 +112,13 @@ func work(ps *system.SystemPS, client *http.Client) {
 		"mem_util":      memUsagePercent,
 		"unixtime":      time.Now().UnixMilli(),
 		"host_ip":       hostIP,
+		"busigroup":     config.Config.Global.Labels["busigroup"],
 	}
 
 	if ext, err := collectSystemInfo(); err == nil {
 		data["extend_info"] = ext
 	} else {
 		log.Println("E! failed to collect system info:", err)
-		"busigroup":     config.Config.Global.Labels["busigroup"],
 	}
 
 	bs, err := json.Marshal(data)
