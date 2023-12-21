@@ -13,9 +13,6 @@ import (
 	"time"
 
 	"github.com/chai2010/winsvc"
-	"golang.org/x/sys/windows"
-	"golang.org/x/sys/windows/svc/eventlog"
-	"golang.org/x/sys/windows/svc/mgr"
 
 	"flashcat.cloud/categraf/agent"
 	"flashcat.cloud/categraf/config"
@@ -34,7 +31,12 @@ var (
 
 func runAgent(ag *agent.Agent) {
 	if !winsvc.IsAnInteractiveSession() {
-		initLog("categraf.log")
+		if config.Config.Log.FileName == "stdout" || config.Config.Log.FileName == "stderr" ||
+			config.Config.Log.FileName == "" {
+			initLog("categraf.log")
+		} else {
+			initLog(config.Config.Log.FileName)
+		}
 
 		if err := winsvc.RunAsService(*flagWinSvcName, ag.Start, ag.Stop, false); err != nil {
 			log.Fatalln("F! failed to run windows service:", err)
@@ -50,7 +52,7 @@ func runAgent(ag *agent.Agent) {
 func doOSsvc() {
 	// install service
 	if *flagWinSvcInstall {
-		if err := installService(appPath, *flagWinSvcName, *flagWinSvcDesc); err != nil {
+		if err := winsvc.InstallService(appPath, *flagWinSvcName, *flagWinSvcDesc); err != nil {
 			log.Fatalln("F! failed to install service:", *flagWinSvcName, "error:", err)
 		}
 		fmt.Println("done")
@@ -101,49 +103,4 @@ func profile() {
 			}
 		}
 	}
-}
-
-func installService(appPath string, name string, desc string, params ...string) error {
-	m, err := mgr.Connect()
-	if err != nil {
-		return err
-	}
-	defer m.Disconnect()
-
-	s, err := m.OpenService(name)
-	if err == nil {
-		return fmt.Errorf("winsvc.InstallService: service %s already exists", name)
-	}
-	defer s.Close()
-
-	serviceType := windows.SERVICE_WIN32_OWN_PROCESS
-	s, err = m.CreateService(name, appPath,
-		mgr.Config{
-			DisplayName:      name,
-			Description:      desc,
-			StartType:        mgr.StartAutomatic,
-			ServiceType:      uint32(serviceType),
-			DelayedAutoStart: true,
-		},
-		params...,
-	)
-	if err != nil {
-		return err
-	}
-
-	if err := s.SetRecoveryActions([]mgr.RecoveryAction{
-		{
-			Type:  mgr.ServiceRestart,
-			Delay: 0,
-		},
-	}, 0); err != nil {
-		return err
-	}
-
-	err = eventlog.InstallAsEventCreate(name, eventlog.Error|eventlog.Warning|eventlog.Info)
-	if err != nil {
-		s.Delete()
-		return fmt.Errorf("winsvc.InstallService: InstallAsEventCreate failed, err = %v", err)
-	}
-	return nil
 }

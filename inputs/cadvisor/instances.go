@@ -216,15 +216,11 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 	ins.setHeaders(req)
 
-	labels := map[string]string{}
-
-	urlKey, urlVal, err := ins.GenerateLabel(ins.u)
+	labels, err := ins.GenerateLabel(ins.u)
 	if err != nil {
 		log.Println("E! failed to generate url label value:", err)
 		return
 	}
-
-	labels[urlKey] = urlVal
 
 	res, err := ins.client.Do(req)
 	if err != nil {

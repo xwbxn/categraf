@@ -16,6 +16,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/appdynamics"
 	_ "flashcat.cloud/categraf/inputs/arms"
 	_ "flashcat.cloud/categraf/inputs/arp_packet"
+	_ "flashcat.cloud/categraf/inputs/bind"
 	_ "flashcat.cloud/categraf/inputs/cadvisor"
 	_ "flashcat.cloud/categraf/inputs/clickhouse"
 	_ "flashcat.cloud/categraf/inputs/cloudwatch"
@@ -29,6 +30,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/docker"
 	_ "flashcat.cloud/categraf/inputs/elasticsearch"
 	_ "flashcat.cloud/categraf/inputs/exec"
+	_ "flashcat.cloud/categraf/inputs/filecount"
 	_ "flashcat.cloud/categraf/inputs/googlecloud"
 	_ "flashcat.cloud/categraf/inputs/greenplum"
 	_ "flashcat.cloud/categraf/inputs/haproxy"
@@ -82,6 +84,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/venus"
 	_ "flashcat.cloud/categraf/inputs/vsphere"
 	_ "flashcat.cloud/categraf/inputs/w_aviation"
+	_ "flashcat.cloud/categraf/inputs/whois"
 	_ "flashcat.cloud/categraf/inputs/xskyapi"
 	_ "flashcat.cloud/categraf/inputs/zookeeper"
 )

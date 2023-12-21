@@ -2,9 +2,12 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"net"
+	"net/url"
 	"os"
 	"path"
+	"runtime"
 	"strings"
 	"time"
 
@@ -16,6 +19,10 @@ import (
 	"github.com/toolkits/pkg/file"
 )
 
+const (
+	defaultProbeAddr = "223.5.5.5:80"
+)
+
 var envVarEscaper = strings.NewReplacer(
 	`"`, `\"`,
 	`\`, `\\`,
@@ -24,12 +31,12 @@ var envVarEscaper = strings.NewReplacer(
 type Global struct {
 	PrintConfigs bool              `toml:"print_configs"`
 	Hostname     string            `toml:"hostname"`
-	IP           string            `toml:"-"`
 	OmitHostname bool              `toml:"omit_hostname"`
 	Labels       map[string]string `toml:"labels"`
 	Precision    string            `toml:"precision"`
 	Interval     Duration          `toml:"interval"`
 	Providers    []string          `toml:"providers"`
+	Concurrency  int               `toml:"concurrency"`
 }
 
 type Log struct {
@@ -55,6 +62,8 @@ type WriterOption struct {
 	Timeout             int64 `toml:"timeout"`
 	DialTimeout         int64 `toml:"dial_timeout"`
 	MaxIdleConnsPerHost int   `toml:"max_idle_conns_per_host"`
+
+	tls.ClientConfig
 }
 
 type HTTP struct {
@@ -149,11 +158,9 @@ func InitConfig(configDir string, debugMode, testMode bool, interval int64, inpu
 		Config.WriterOpt.Batch = 1000
 	}
 
-	if err := Config.fillIP(); err != nil {
-		return err
-	}
+	Config.Global.Hostname = strings.TrimSpace(Config.Global.Hostname)
 
-	if err := InitHostname(); err != nil {
+	if err := InitHostInfo(); err != nil {
 		return err
 	}
 
@@ -186,27 +193,25 @@ func InitConfig(configDir string, debugMode, testMode bool, interval int64, inpu
 	return nil
 }
 
-func (c *ConfigType) fillIP() error {
-	ip, err := GetOutboundIP()
-	if err != nil {
-		return err
-	}
-
-	c.Global.IP = fmt.Sprint(ip)
-	return nil
-}
-
 func (c *ConfigType) GetHostname() string {
 	ret := c.Global.Hostname
 
-	name := Hostname.Get()
+	name := HostInfo.GetHostname()
 	if ret == "" {
 		return name
 	}
 
 	ret = strings.Replace(ret, "$hostname", name, -1)
-	ret = strings.Replace(ret, "$ip", c.Global.IP, -1)
+	ret = strings.Replace(ret, "$ip", c.GetHostIP(), -1)
 	ret = os.Expand(ret, GetEnv)
+
+	return ret
+}
+func (c *ConfigType) GetHostIP() string {
+	ret := HostInfo.GetIP()
+	if ret == "" {
+		return c.GetHostname()
+	}
 
 	return ret
 }
@@ -224,11 +229,80 @@ func GetInterval() time.Duration {
 	return time.Duration(Config.Global.Interval)
 }
 
+func GetConcurrency() int {
+	if Config.Global.Concurrency <= 0 {
+		return runtime.NumCPU() * 10
+	}
+	return Config.Global.Concurrency
+}
+
+func getLocalIP() (net.IP, error) {
+	ifs, err := net.Interfaces()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, iface := range ifs {
+		if (iface.Flags & net.FlagUp) == 0 {
+			continue
+		}
+		addrs, err := iface.Addrs()
+		if err != nil {
+			log.Println("W! iface address error", err)
+			continue
+		}
+		for _, addr := range addrs {
+			if ip, ok := addr.(*net.IPNet); ok && ip.IP.IsLoopback() {
+				continue
+			} else {
+				ip4 := ip.IP.To4()
+				if ip4 == nil {
+					continue
+				}
+				return ip4, nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("no local ip found")
+}
+
 // Get preferred outbound ip of this machine
 func GetOutboundIP() (net.IP, error) {
-	conn, err := net.Dial("udp", "223.5.5.5:80")
+	addr := defaultProbeAddr
+	if len(Config.Writers) == 0 {
+		log.Printf("E! writers is not configured, use %s as default probe address", defaultProbeAddr)
+	}
+	for _, v := range Config.Writers {
+		if len(v.Url) != 0 {
+			u, err := url.Parse(v.Url)
+			if err != nil {
+				log.Printf("W! parse writers url %s error %s", v.Url, err)
+				continue
+			} else {
+				if strings.Contains(u.Host, "localhost") || strings.Contains(u.Host, "127.0.0.1") {
+					continue
+				}
+				if len(u.Port()) == 0 {
+					if u.Scheme == "http" {
+						u.Host = u.Host + ":80"
+					}
+					if u.Scheme == "https" {
+						u.Host = u.Host + ":443"
+					}
+				}
+				addr = u.Host
+				break
+			}
+		}
+	}
+
+	conn, err := net.Dial("udp", addr)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get outbound ip: %v", err)
+		ip, err := getLocalIP()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get local ip: %v", err)
+		}
+		return ip, nil
 	}
 	defer conn.Close()
 
@@ -247,7 +321,7 @@ func GlobalLabels() map[string]string {
 
 func Expand(nv string) string {
 	nv = strings.Replace(nv, "$hostname", Config.GetHostname(), -1)
-	nv = strings.Replace(nv, "$ip", Config.Global.IP, -1)
+	nv = strings.Replace(nv, "$ip", Config.GetHostIP(), -1)
 	nv = os.Expand(nv, GetEnv)
 	return nv
 }

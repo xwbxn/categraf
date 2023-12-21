@@ -3,8 +3,13 @@ package snmp
 import (
 	"fmt"
 	"log"
+	"net"
+	"net/url"
+	"strings"
 	"sync"
+	"time"
 
+	"github.com/freedomkk-qfeng/go-fastping"
 	"github.com/gosnmp/gosnmp"
 
 	"flashcat.cloud/categraf/config"
@@ -71,6 +76,45 @@ func (ins *Instance) Init() error {
 	return nil
 }
 
+func (ins *Instance) up(slist *types.SampleList, i int) {
+	host := ins.Agents[i]
+	u, err := url.Parse(ins.Agents[i])
+	if err == nil {
+		host = u.Hostname()
+	}
+
+	etags := map[string]string{}
+	for k, v := range ins.GetLabels() {
+		etags[k] = v
+	}
+	if m, ok := ins.Mappings[host]; ok {
+		for k, v := range m {
+			etags[k] = v
+		}
+	}
+	etags[ins.AgentHostTag] = host
+
+	// icmp probe
+	up := Ping(host, 300)
+	slist.PushSample(inputName, "icmp_up", up, etags)
+
+	// snmp probe
+	oid := ".1.3.6.1.2.1.1.1.0"
+	gs, err := ins.getConnection(i)
+	if err != nil {
+		slist.PushSample(inputName, "up", 0, etags)
+		return
+	}
+	_, err = gs.Get([]string{oid})
+	if err != nil {
+		if strings.Contains(err.Error(), "refused") || strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "reset") {
+			slist.PushSample(inputName, "up", 0, etags)
+			return
+		}
+	}
+	slist.PushSample(inputName, "up", 1, etags)
+}
+
 // Gather retrieves all the configured fields and tables.
 // Any error encountered does not halt the process. The errors are accumulated
 // and returned at the end.
@@ -80,21 +124,25 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		wg.Add(1)
 		go func(i int, agent string) {
 			defer wg.Done()
-			gs, err := ins.getConnection(i)
-			if err != nil {
-				log.Printf("agent %s ins: %s", agent, err)
-				return
-			}
-
 			// First is the top-level fields. We treat the fields as table prefixes with an empty index.
 			t := Table{
 				Name:   ins.Name,
 				Fields: ins.Fields,
 			}
 			topTags := map[string]string{}
+			for k, v := range ins.GetLabels() {
+				topTags[k] = v
+			}
 			extraTags := map[string]string{}
 			if m, ok := ins.Mappings[agent]; ok {
 				extraTags = m
+			}
+			ins.up(slist, i)
+
+			gs, err := ins.getConnection(i)
+			if err != nil {
+				log.Printf("agent %s ins: %s", agent, err)
+				return
 			}
 			if err := ins.gatherTable(slist, gs, t, topTags, extraTags, false); err != nil {
 				log.Printf("agent %s ins: %s", agent, err)
@@ -188,4 +236,38 @@ func (ins *Instance) getConnection(idx int) (snmpConnection, error) {
 	}
 
 	return gs, nil
+}
+
+func Ping(ip string, timeout int) float64 {
+	rtt, err := fastPingRtt(ip, timeout)
+	if err != nil {
+		log.Printf("W! snmp ping %s error:%s", ip, err)
+	}
+	if rtt == -1 {
+		return 0
+	}
+	return 1
+}
+
+func fastPingRtt(ip string, timeout int) (float64, error) {
+	var rt float64
+	rt = -1
+	p := fastping.NewPinger()
+	ra, err := net.ResolveIPAddr("ip4:icmp", ip)
+	if err != nil {
+		return -1, err
+	}
+	p.AddIPAddr(ra)
+	p.OnRecv = func(addr *net.IPAddr, rtt time.Duration) {
+		rt = float64(rtt.Nanoseconds()) / 1000000.0
+	}
+	p.OnIdle = func() {
+	}
+	p.MaxRTT = time.Millisecond * time.Duration(timeout)
+	err = p.Run()
+	if err != nil {
+		return -1, err
+	}
+
+	return rt, err
 }
