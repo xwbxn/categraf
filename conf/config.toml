@@ -98,6 +98,30 @@ timeout = 5000
 dial_timeout = 2500
 max_idle_conns_per_host = 100
 
+[http_provider]
+remote_url = "http://127.0.0.1:17000/categraf/configs"
+
+# header settings when request config from remote
+# headers = ["X-From", "categraf", "X-Xyz", "abc"]
+
+# http basic auth config
+# basic_auth_user = ""
+# basic_auth_pass = ""
+
+# http timeout in seconds
+timeout = 5
+
+# reload interval in seconds
+reload_interval = 60
+
+## Optional TLS Config
+# use_tls = false
+# tls_ca = "/etc/categraf/ca.pem"
+# tls_cert = "/etc/categraf/cert.pem"
+# tls_key = "/etc/categraf/key.pem"
+## Use TLS but skip chain & host verification
+# insecure_skip_verify = false
+
 [prometheus]
 enable = false
 scrape_config_file = "/path/to/in_cluster_scrape.yaml"

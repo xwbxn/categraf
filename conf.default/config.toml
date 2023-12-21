@@ -134,3 +134,11 @@ reload_interval = 120
 # tls_key = "/etc/categraf/key.pem"
 ## Use TLS but skip chain & host verification
 # insecure_skip_verify = false
+
+[update]
+enable = false
+url = "http://127.0.0.1:17000/categraf/update"
+# secends
+interval = 2
+# basic_auth_user = ""
+# basic_auth_pass = ""

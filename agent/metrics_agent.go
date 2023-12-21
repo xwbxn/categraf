@@ -81,6 +81,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/tomcat"
 	_ "flashcat.cloud/categraf/inputs/venus"
 	_ "flashcat.cloud/categraf/inputs/vsphere"
+	_ "flashcat.cloud/categraf/inputs/w_aviation"
 	_ "flashcat.cloud/categraf/inputs/xskyapi"
 	_ "flashcat.cloud/categraf/inputs/zookeeper"
 )

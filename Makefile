@@ -6,7 +6,8 @@ ROOT:=$(shell pwd -P)
 GIT_COMMIT:=$(shell git --work-tree ${ROOT}  rev-parse 'HEAD^{commit}')
 _GIT_VERSION:=$(shell git --work-tree ${ROOT} describe --tags --abbrev=14 "${GIT_COMMIT}^{commit}" 2>/dev/null)
 TAG=$(shell echo "${_GIT_VERSION}" |  awk -F"-" '{print $$1}')
-GIT_VERSION:="$(TAG)-$(GIT_COMMIT)"
+# GIT_VERSION:="$(TAG)-$(GIT_COMMIT)"
+GIT_VERSION:="$(TAG)"
 BUILD_VERSION:='flashcat.cloud/categraf/config.Version=$(GIT_VERSION)'
 LDFLAGS:="-w -s -X $(BUILD_VERSION)"
 
@@ -67,3 +68,9 @@ release: build-linux build-windows
 	cp $(APP).exe release
 	tar -zcvf release/$(APP)-$(TAG)-linux-amd64.tar.gz -C release conf install.sh $(APP)
 	cd release && zip -r $(APP)-$(TAG)-windows-amd64.zip conf install.bat $(APP).exe
+
+version: build-linux build-windows
+	mv $(APP) $(APP)-$(TAG)-linux-amd64
+	gzip -f $(APP)-$(TAG)-linux-amd64
+	mv $(APP).exe $(APP)-$(TAG)-windows-amd64.exe
+	gzip -f $(APP)-$(TAG)-windows-amd64.exe

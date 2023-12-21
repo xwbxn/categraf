@@ -46,7 +46,10 @@ func (ins *Instance) Init() error {
 		ins.solarisMode = true
 	}
 
-	if ins.SearchExecSubstring != "" {
+	if ins.SearchExecSubstring == "" {
+		ins.searchString = ins.SearchExecSubstring
+		log.Println("I! procstat: search_all:")
+	} else if ins.SearchExecSubstring != "" {
 		ins.searchString = ins.SearchExecSubstring
 		log.Println("I! procstat: search_exec_substring:", ins.SearchExecSubstring)
 	} else if ins.SearchCmdlineSubstring != "" {
@@ -113,7 +116,9 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	}
 
 	pg, _ := NewNativeFinder()
-	if ins.SearchExecSubstring != "" {
+	if ins.SearchExecSubstring == "" {
+		pids, err = pg.Pattern(ins.SearchExecSubstring, opts...)
+	} else if ins.SearchExecSubstring != "" {
 		pids, err = pg.Pattern(ins.SearchExecSubstring, opts...)
 	} else if ins.SearchCmdlineSubstring != "" {
 		pids, err = pg.FullPattern(ins.SearchCmdlineSubstring, opts...)
