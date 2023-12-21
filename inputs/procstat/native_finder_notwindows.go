@@ -27,7 +27,7 @@ PROCS:
 			// or you having no permissions to access it
 			continue
 		}
-		if strings.Contains(name, pattern) {
+		if pattern == "" || strings.Contains(name, pattern) {
 			pids = append(pids, PID(p.Pid))
 		}
 	}
