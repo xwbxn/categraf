@@ -104,8 +104,6 @@ require (
 	github.com/jackc/pgservicefile v0.0.0-20200714003250-2b9c44734f2b // indirect
 	github.com/jackc/pgtype v1.12.0 // indirect
 	github.com/jaypipes/pcidb v1.0.0 // indirect
-	github.com/jpillora/overseer v1.1.6 // indirect
-	github.com/jpillora/s3 v1.1.4 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.4 // indirect
 	github.com/likexian/gokit v0.25.13 // indirect
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/resourcetotelemetry v0.54.0 // indirect
@@ -149,7 +147,6 @@ require (
 	github.com/prometheus-community/pro-bing v0.1.0
 	github.com/tidwall/gjson v1.14.4
 	github.com/vmware/govmomi v0.29.0
-	github.com/xwbxn/overseer v0.0.2
 	github.com/yumaojun03/dmidecode v0.1.4
 	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1
 )
@@ -318,7 +315,6 @@ require (
 	github.com/rs/cors v1.8.2 // indirect
 	github.com/samuel/go-zookeeper v0.0.0-20190923202752-2cc03de413da // indirect
 	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.9
-	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
 	github.com/spf13/afero v1.9.2 // indirect
@@ -344,7 +340,7 @@ require (
 	github.com/xdg-go/stringprep v1.0.4 // indirect
 	github.com/xdg/stringprep v1.0.3 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d // indirect
-	github.com/yusufpapurcu/wmi v1.2.2 // indirect
+	github.com/yusufpapurcu/wmi v1.2.2
 	go.opencensus.io v0.24.0
 	go.opentelemetry.io/collector/pdata v0.54.0
 	go.opentelemetry.io/collector/semconv v0.54.0 // indirect

@@ -1,26 +1,26 @@
-//go:build !windows
-// +build !windows
-
 package w_aviation
 
 import (
 	"context"
 	"fmt" //输出日志，用于DeBug
+	"net"
 	"os"
 	"os/exec"
-	"strconv"
 	"strings"
 	"time"
 
 	"flashcat.cloud/categraf/config" //定义插件配置项
 	"flashcat.cloud/categraf/inputs" //引入inputs对象聚合数据
-	"flashcat.cloud/categraf/types"  //用于打包发送数据
+
+	//自定义cpu组件, 修改自psutil
+	"flashcat.cloud/categraf/types" //用于打包发送数据
 
 	//gopsutil,获取硬件信息，跨平台系统
 	"github.com/jaypipes/ghw"
-	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/shirou/gopsutil/v3/host"
+
+	// "github.com/shirou/gopsutil/v3/net"
 	"github.com/toolkits/pkg/logger"
 
 	// 获取范式电源信息
@@ -79,7 +79,7 @@ func (wa *w_aviation) Gather(slist *types.SampleList) {}
 type Instance struct {
 	config.InstanceConfig
 	ImpiTimeout config.Duration `toml:"ipmi_timeout"`
-	Path        string          `toml:path`
+	Path        string          `toml:"path"`
 }
 
 // 初始化
@@ -103,7 +103,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	// MEM
 	ins.GetMemInfo(slist)
 	// NET
-	ins.GetNetInfoS(slist)
+	ins.GetNetInfo(slist)
 	// DISK
 	ins.GetDiskInfo(slist)
 	// BaseBoard
@@ -122,35 +122,31 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 // func for get CPU info
 func (ins *Instance) GetCpuInfo(slist *types.SampleList) error {
+	dmi, error := dmidecode.New()
+	if error != nil {
+		return error
+	}
+	processors, error := dmi.Processor()
+	if error != nil {
+		return error
+	}
+
 	host_info, _ := host.Info() // cpu架构
 	cpu_arch := host_info.KernelArch
-	cpu_infos, _ := cpu.Info()
-	if len(cpu_infos) == 0 { // 如果没有cpu就直接跳过不发送cpu信息
-		return nil
-	}
-	Cpu_cores, _ := cpu.Counts(false)  //系统物理核心数
-	Cpu_threads, _ := cpu.Counts(true) //系统虚拟核心数（线程数）
-	// cpu睿频 未完成
-	cpu_cores := fmt.Sprintf("%d", Cpu_cores/len(cpu_infos))     // 系统cpu物理核心数
-	cpu_threads := fmt.Sprintf("%d", Cpu_threads/len(cpu_infos)) // 系统cpu逻辑核心数
 
-	for _, cpu_info := range cpu_infos {
-		cpu_modelname := cpu_info.ModelName // cpu型号
-		cpu_Mhz := fmt.Sprintf("%.0f", cpu_info.Mhz)
-
+	for index, cpu_info := range processors {
 		fields := map[string]interface{}{
 			"cpu": 1,
 		}
 		tags := map[string]string{
-			"index":         fmt.Sprintf("%d", cpu_info.CPU),              // cpu序号
-			"model":         cpu_modelname,                                // cpu型号
-			"arch":          cpu_arch,                                     // cpu架构
-			"frequency":     cpu_Mhz,                                      // 主频
-			"core_count":    cpu_cores,                                    // 系统总物理核心数
-			"thread_count":  cpu_threads,                                  // 系统总逻辑核心数
-			"max_frequency": fmt.Sprintf("%.0f", getCpuMaxMhz(&cpu_info)), //最大主频
+			"index":         fmt.Sprintf("%d", index),                 // cpu序号
+			"model":         cpu_info.Version,                         // cpu型号
+			"arch":          cpu_arch,                                 // cpu架构
+			"frequency":     fmt.Sprintf("%d", cpu_info.CurrentSpeed), // 主频
+			"core_count":    fmt.Sprintf("%d", cpu_info.CoreCount),    // 系统总物理核心数
+			"thread_count":  fmt.Sprintf("%d", cpu_info.ThreadCount),  // 系统总逻辑核心数
+			"max_frequency": fmt.Sprintf("%d", cpu_info.MaxSpeed),     //最大主频
 		}
-
 		slist.PushSamples(inputName, fields, tags) // cpu主频
 	}
 	return nil
@@ -162,24 +158,30 @@ func (ins *Instance) GetMemInfo(slist *types.SampleList) error {
 	if error != nil {
 		return error
 	}
-	MemInfo, error := dmi.MemoryDevice()
+	memDevice, error := dmi.MemoryDevice()
 	if error != nil {
 		return error
 	}
-	// mem_num := fmt.Sprint(len(MemInfo))
+	memArray, error := dmi.MemoryArray()
+	if error != nil {
+		return error
+	}
+	num_device := 0
+	if len(memArray) > 0 {
+		num_device = int(memArray[0].NumberOfMemoryDevices)
+	}
 
-	for i, v := range MemInfo {
+	for i, v := range memDevice {
 		fields := map[string]interface{}{
 			"memory": 1,
 		}
 		tags := map[string]string{
-			"index":     fmt.Sprint(i),
-			"capacity":  fmt.Sprintf("%d", v.Size), // 内存大小
-			"brand":     v.Manufacturer,            // 内存品牌
-			"type":      fmt.Sprint(v.Type),        // 内存类型
-			"frequency": fmt.Sprint(v.Speed),       // 内存主频
-			// "mem_speed":      fmt.Sprint(v.Speed),                      // 内存主频
-			// "mem_num":        mem_num,                                  // 物理插槽数量
+			"index":      fmt.Sprint(i),
+			"capacity":   fmt.Sprintf("%d", v.Size),                // 内存大小
+			"brand":      v.Manufacturer,                           // 内存品牌
+			"type":       fmt.Sprint(v.Type),                       // 内存类型
+			"frequency":  fmt.Sprint(v.ConfiguredMemoryClockSpeed), // 内存主频
+			"num_device": fmt.Sprintf("%d", num_device),            // 物理插槽数量
 		}
 		slist.PushSamples(inputName, fields, tags)
 	}
@@ -211,24 +213,59 @@ func (ins *Instance) GetDiskInfo(slist *types.SampleList) error {
 }
 
 // func for get NET info
-func (ins *Instance) GetNetInfoS(slist *types.SampleList) error {
-	netinfos := GetNetInfo()
-	if len(netinfos) == 0 {
-		return nil
+func (ins *Instance) GetNetInfo(slist *types.SampleList) error {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		fmt.Println("Error:", err)
+		return err
 	}
-	for _, net := range netinfos {
-		if strings.HasPrefix(net["ipv4_IP"], "127.0.0.1") || strings.HasPrefix(net["ipv4_IP"], "::1") {
+	netinfo, err := ghw.Network()
+	if err != nil {
+		fmt.Printf("Error getting network info: %v", err)
+		return err
+	}
+	netType := map[string]string{}
+	for _, nic := range netinfo.NICs {
+		if nic.IsVirtual {
+			netType[strings.ToUpper(nic.MacAddress)] = "虚拟网卡"
+		} else {
+			netType[strings.ToUpper(nic.MacAddress)] = "物理网卡"
+		}
+	}
+
+	defaultgw := GetGateway()
+outerloop:
+	for _, iface := range ifaces {
+		addrs, err := iface.Addrs()
+		if err != nil {
+			fmt.Println("Error:", err)
 			continue
 		}
+
+		var ipv4, ipv6, gateway string
+		for _, addr := range addrs {
+			if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+				if v4 := ipnet.IP.To4(); v4 != nil {
+					ipv4 = v4.String()
+					gateway = defaultgw
+				} else if v6 := ipnet.IP.To16(); v6 != nil {
+					ipv6 = v6.String()
+				}
+			} else {
+				continue outerloop
+			}
+		}
+
 		fields := map[string]interface{}{
 			"net": 1,
 		}
 		tags := map[string]string{
-			"name":       net["name"],
-			"address":    net["ipv4_IP"],
-			"address_v6": net["ipv6_IP"],
-			"mac":        net["mac"],
-			"gateway":    net["gateway"],
+			"name":       iface.Name,
+			"address":    ipv4,
+			"address_v6": ipv6,
+			"mac":        iface.HardwareAddr.String(),
+			"gateway":    gateway,
+			"type":       netType[strings.ToUpper(iface.HardwareAddr.String())],
 		}
 		slist.PushSamples(inputName, fields, tags)
 	}
@@ -302,26 +339,6 @@ func (ins *Instance) GetOSInfo(slist *types.SampleList) error {
 	return nil
 }
 
-func (ins *Instance) GetBusInfo(slist *types.SampleList) error {
-	pci, err := ghw.PCI()
-	if err != nil {
-		return err
-	}
-	for _, device := range pci.Devices {
-
-		fields := map[string]interface{}{
-			"bus": 1, // os
-		}
-		tags := map[string]string{
-			"name":    device.Class.Name,
-			"vendor":  device.Vendor.Name,
-			"product": device.Product.Name,
-		}
-		slist.PushSamples(inputName, fields, tags)
-	}
-	return nil
-}
-
 func (ins *Instance) GetBatteryInfo(slist *types.SampleList) error {
 	batteries, err := battery.GetAll()
 	if err != nil {
@@ -338,15 +355,6 @@ func (ins *Instance) GetBatteryInfo(slist *types.SampleList) error {
 			"status": battery.State.String(),
 		}
 		slist.PushSamples(inputName, fields, tags)
-		// ----
-		fmt.Printf("Bat%d: ", i)
-		fmt.Printf("state: %s, ", battery.State.String())
-		fmt.Printf("current capacity: %f mWh, ", battery.Current)
-		fmt.Printf("last full capacity: %f mWh, ", battery.Full)
-		fmt.Printf("design capacity: %f mWh, ", battery.Design)
-		fmt.Printf("charge rate: %f mW, ", battery.ChargeRate)
-		fmt.Printf("voltage: %f V, ", battery.Voltage)
-		fmt.Printf("design voltage: %f V\n", battery.DesignVoltage)
 	}
 	return nil
 }
@@ -383,33 +391,4 @@ func (ins *Instance) GetPowerInfo(slist *types.SampleList) error {
 	}
 
 	return nil
-}
-
-func sysCPUPath(cpu int32, relPath string) string {
-	return HostSys(fmt.Sprintf("devices/system/cpu/cpu%d", cpu), relPath)
-}
-
-func getCpuMaxMhz(c *cpu.InfoStat) float64 {
-	var lines []string
-	var err error
-	var value float64
-
-	// override the value of c.Mhz with cpufreq/cpuinfo_max_freq regardless
-	// of the value from /proc/cpuinfo because we want to report the maximum
-	// clock-speed of the CPU for c.Mhz, matching the behaviour of Windows
-	lines, err = ReadLines(sysCPUPath(c.CPU, "cpufreq/cpuinfo_max_freq"))
-	// if we encounter errors below such as there are no cpuinfo_max_freq file,
-	// we just ignore. so let Mhz is 0.
-	if err != nil || len(lines) == 0 {
-		return 0
-	}
-	value, err = strconv.ParseFloat(lines[0], 64)
-	if err != nil {
-		return 0
-	}
-	value = value / 1000.0 // value is in kHz
-	if value > 9999 {
-		value = c.Mhz / 1000.0 // value in Hz
-	}
-	return value
 }

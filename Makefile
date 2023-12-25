@@ -18,7 +18,7 @@ vendor:
 
 build:
 	echo "Building version $(GIT_VERSION)"
-	go build -ldflags $(LDFLAGS) -o $(APP)
+	go build --tags "no_prometheus no_traces no_ibex no_logs" -ldflags $(LDFLAGS) -o $(APP)
 
 build-enterprise:
 	echo "Building version $(GIT_VERSION)"
